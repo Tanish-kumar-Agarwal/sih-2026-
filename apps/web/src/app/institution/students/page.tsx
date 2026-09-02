@@ -461,10 +461,14 @@ export default function InstitutionStudentIntelligencePage() {
                             </td>
 
                             <td>
-                              <div className="student-cell">
+                              <div
+                                className="student-cell"
+                                style={{ cursor: "pointer" }}
+                                onClick={() => router.push(`/institution/students/${s.id}`)}
+                              >
                                 <div className="student-avatar">{s.avatar}</div>
                                 <div className="student-meta">
-                                  <div className="name">{s.name}</div>
+                                  <div className="name" style={{ color: "var(--foreground)" }}>{s.name}</div>
                                   <div className="sub">
                                     {s.branch} · {s.batch}
                                     {s.available && <span> · Available</span>}
@@ -524,7 +528,7 @@ export default function InstitutionStudentIntelligencePage() {
                                 className="btn btn-secondary"
                                 type="button"
                                 style={{ height: "30px", fontSize: "12.5px", padding: "0 12px" }}
-                                onClick={() => router.push("/student/profile")}
+                                onClick={() => router.push(`/institution/students/${s.id}`)}
                               >
                                 View profile
                               </button>
