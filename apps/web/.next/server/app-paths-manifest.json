@@ -1,8 +1,7 @@
 {
+  "/(public)/about/page": "app/(public)/about/page.js",
   "/student/dashboard/page": "app/student/dashboard/page.js",
   "/institution/students/page": "app/institution/students/page.js",
-  "/student/competency/page": "app/student/competency/page.js",
-  "/(public)/page": "app/(public)/page.js",
   "/student/profile/page": "app/student/profile/page.js",
-  "/institution/students/[id]/page": "app/institution/students/[id]/page.js"
+  "/student/competency/page": "app/student/competency/page.js"
 }

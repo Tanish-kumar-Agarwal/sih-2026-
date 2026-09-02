@@ -290,7 +290,7 @@ export default function InstitutionStudentIntelligencePage() {
 
           <nav className="nav" aria-label="Student">
             <Link href="/student/dashboard"><svg><use href="#i-grid"/></svg>Dashboard</Link>
-            <Link href="/student/competency"><svg><use href="#i-spark"/></svg>My skills</Link>
+            <Link href="/student/competency"><svg><use href="#i-spark"/></svg>Competency center</Link>
             <Link href="/student/competency"><svg><use href="#i-clip"/></svg>Assessments</Link>
             <Link href="/student/opportunities"><svg><use href="#i-case"/></svg>Opportunities</Link>
             <Link href="/student/opportunities"><svg><use href="#i-book"/></svg>Internships</Link>

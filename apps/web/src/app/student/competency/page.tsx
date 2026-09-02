@@ -1,236 +1,357 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Sparkles,
+  Target,
+  Layers,
+  ChevronRight,
+  Code2,
+  Database,
+  Server,
+  Cloud,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  ArrowUpRight,
+  FileCheck2,
+  Award,
+  ChevronDown,
+  RefreshCw,
+  GitBranch,
+  ShieldCheck,
+  Zap,
+  BookOpen,
+  Cpu,
+  Lock,
+  Boxes,
+  Plus,
+  Compass,
+  FileText
+} from "lucide-react";
 
 interface SkillNode {
   id: string;
   name: string;
   group: "prog" | "data" | "sys";
   groupName: string;
-  gap: "none" | "small" | "moderate" | "large";
+  category: string;
+  status: "mastered" | "developing" | "gap";
   gapWord: string;
-  cur: string;
-  req: string;
-  pct: number;
+  currentLevel: string;
+  requiredLevel: string;
+  score: number;
+  benchmark: number;
   evText: string;
-  evidence: [number, number, number, number]; // [projects, certs, assessments, github]
+  evidence: {
+    projects: number;
+    certs: number;
+    assessments: number;
+    githubRepos: number;
+  };
+  recommendedAction: string;
+  actionType: "assessment" | "project" | "cert" | "lab";
+  actionGain: string;
 }
 
 export default function StudentCompetencyCenterPage() {
   const router = useRouter();
 
-  // Role and Search State
-  const [selectedRole, setSelectedRole] = useState("Backend developer");
+  // Role blueprints
+  const roleBlueprints: Record<string, {
+    score: number;
+    hiringThreshold: number;
+    delta: string;
+    status: string;
+    matchedRolesCount: number;
+    companies: string;
+  }> = {
+    "Backend Developer": {
+      score: 78,
+      hiringThreshold: 80,
+      delta: "2 points to tier-1 hiring bar",
+      status: "Industry Ready",
+      matchedRolesCount: 14,
+      companies: "Razorpay, Zomato, CRED"
+    },
+    "AI Platform Engineer": {
+      score: 74,
+      hiringThreshold: 82,
+      delta: "8 points to tier-1 hiring bar",
+      status: "Nearly Ready",
+      matchedRolesCount: 9,
+      companies: "Microsoft, Flipkart, Sarvam AI"
+    },
+    "Fullstack Engineer": {
+      score: 83,
+      hiringThreshold: 78,
+      delta: "+5 points above tier-1 bar",
+      status: "Exceeds Bar",
+      matchedRolesCount: 18,
+      companies: "Swiggy, Groww, PhonePe"
+    },
+    "DevOps & Cloud Specialist": {
+      score: 71,
+      hiringThreshold: 82,
+      delta: "11 points to tier-1 hiring bar",
+      status: "Developing",
+      matchedRolesCount: 8,
+      companies: "AWS, Freshworks, Paytm"
+    }
+  };
+
+  const [selectedRole, setSelectedRole] = useState("Backend Developer");
   const [showRoleMenu, setShowRoleMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [domainFilter, setDomainFilter] = useState<"all" | "prog" | "data" | "sys">("all");
+  const [activeViewMode, setActiveViewMode] = useState<"graph" | "matrix">("graph");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Skill map definition
-  const skillsData: Record<string, SkillNode> = {
-    python: {
-      id: "python",
-      name: "Python",
-      group: "prog",
-      groupName: "Programming",
-      gap: "none",
-      gapWord: "None",
-      cur: "Advanced",
-      req: "Advanced",
-      pct: 94,
-      evText: "3 projects, 1 certification, 128 LeetCode solves in Python.",
-      evidence: [3, 1, 2, 6],
-    },
-    js: {
-      id: "js",
-      name: "JavaScript",
-      group: "prog",
-      groupName: "Programming",
-      gap: "small",
-      gapWord: "Small",
-      cur: "Intermediate",
-      req: "Intermediate",
-      pct: 72,
-      evText: "2 projects, no certification. Last assessed 40 days ago.",
-      evidence: [2, 0, 1, 4],
-    },
-    dsa: {
-      id: "dsa",
-      name: "DSA",
-      group: "prog",
-      groupName: "Programming",
-      gap: "none",
-      gapWord: "None",
-      cur: "Advanced",
-      req: "Intermediate",
-      pct: 90,
-      evText: "Codeforces 1428, 384 problems solved, top 9% in a rated contest.",
-      evidence: [0, 0, 2, 1],
-    },
-    sql: {
-      id: "sql",
-      name: "SQL",
-      group: "data",
-      groupName: "Data",
-      gap: "none",
-      gapWord: "None",
-      cur: "Advanced",
-      req: "Advanced",
-      pct: 88,
-      evText: "Assessment 88%, 2 projects with schema design, 1 internship task.",
-      evidence: [2, 0, 1, 3],
-    },
-    pg: {
-      id: "pg",
-      name: "PostgreSQL",
-      group: "data",
-      groupName: "Data",
-      gap: "small",
-      gapWord: "Small",
-      cur: "Intermediate",
-      req: "Intermediate",
-      pct: 70,
-      evText: "1 project on PostgreSQL. No assessment yet.",
-      evidence: [1, 0, 0, 1],
-    },
-    redis: {
-      id: "redis",
-      name: "Redis",
-      group: "data",
-      groupName: "Data",
-      gap: "moderate",
-      gapWord: "Moderate",
-      cur: "Basic",
-      req: "Intermediate",
-      pct: 48,
-      evText: "Used in 1 project as a cache. No assessment, no certification.",
-      evidence: [1, 0, 0, 1],
-    },
-    api: {
-      id: "api",
-      name: "APIs",
-      group: "sys",
-      groupName: "Systems",
-      gap: "none",
-      gapWord: "None",
-      cur: "Advanced",
-      req: "Advanced",
-      pct: 91,
-      evText: "4 projects with public APIs, internship at Razorpay, assessment 91%.",
-      evidence: [4, 0, 1, 5],
-    },
-    auth: {
-      id: "auth",
-      name: "Authentication",
-      group: "sys",
-      groupName: "Systems",
-      gap: "small",
-      gapWord: "Small",
-      cur: "Intermediate",
-      req: "Intermediate",
-      pct: 74,
-      evText: "JWT and OAuth in 2 projects. No security assessment.",
-      evidence: [2, 0, 0, 2],
-    },
-    docker: {
-      id: "docker",
-      name: "Docker",
-      group: "sys",
-      groupName: "Systems",
-      gap: "moderate",
-      gapWord: "Moderate",
-      cur: "Basic",
-      req: "Intermediate",
-      pct: 54,
-      evText: "1 Dockerfile in a project repo. No deployment evidence, no certification.",
-      evidence: [1, 0, 0, 2],
-    },
-    cloud: {
-      id: "cloud",
-      name: "Cloud",
-      group: "sys",
-      groupName: "Systems",
-      gap: "large",
-      gapWord: "Large",
-      cur: "Basic",
-      req: "Intermediate",
-      pct: 62,
-      evText: "AWS free-tier account linked. Nothing deployed yet.",
-      evidence: [0, 0, 0, 0],
-    },
-  };
-
-  const [selectedSkillId, setSelectedSkillId] = useState<string>("postgres" in skillsData ? "postgres" : "pg");
-  const currentSkill = skillsData[selectedSkillId] || skillsData["docker"];
-
-  // Tree wire rendering
-  const treeRef = useRef<HTMLDivElement>(null);
-  const [wirePaths, setWirePaths] = useState<{ d: string; on: boolean }[]>([]);
-
-  const recalculateWires = () => {
-    if (!treeRef.current) return;
-    const tree = treeRef.current;
-    const tRect = tree.getBoundingClientRect();
-
-    const getCenter = (el: HTMLElement) => {
-      const r = el.getBoundingClientRect();
-      return {
-        x: r.left - tRect.left + r.width / 2,
-        top: r.top - tRect.top,
-        bottom: r.bottom - tRect.top,
-      };
-    };
-
-    const nodeElements = tree.querySelectorAll(".node");
-    const byId: Record<string, HTMLElement> = {};
-    nodeElements.forEach((node) => {
-      const id = node.getAttribute("data-id");
-      if (id) byId[id] = node as HTMLElement;
-    });
-
-    const paths: { d: string; on: boolean }[] = [];
-
-    nodeElements.forEach((node) => {
-      const pid = node.getAttribute("data-parent");
-      if (!pid) return;
-      const parent = pid === "__selected" ? byId[selectedSkillId] : byId[pid];
-      if (!parent) return;
-
-      const a = getCenter(parent);
-      const b = getCenter(node as HTMLElement);
-      const mid = a.bottom + (b.top - a.bottom) / 2;
-
-      const nodeId = node.getAttribute("data-id");
-      const isSelectedLeaf = nodeId === selectedSkillId;
-      const isSelectedGroup = byId[selectedSkillId]?.getAttribute("data-parent") === nodeId;
-      const isEvidenceLink = pid === "__selected" || pid === "evidence";
-
-      const isOn = isSelectedLeaf || isSelectedGroup || isEvidenceLink;
-
-      paths.push({
-        d: `M${a.x} ${a.bottom} V${mid} H${b.x} V${b.top}`,
-        on: Boolean(isOn),
-      });
-    });
-
-    setWirePaths(paths);
-  };
-
-  useEffect(() => {
-    recalculateWires();
-    const handleResize = () => recalculateWires();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [selectedSkillId]);
+  const currentRole = roleBlueprints[selectedRole] || roleBlueprints["Backend Developer"];
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   };
 
+  // Skill ontology dataset
+  const skillsData: Record<string, SkillNode> = {
+    python: {
+      id: "python",
+      name: "Python & Core OOP",
+      group: "prog",
+      groupName: "Programming",
+      category: "Languages & Paradigms",
+      status: "mastered",
+      gapWord: "None",
+      currentLevel: "Advanced",
+      requiredLevel: "Advanced",
+      score: 94,
+      benchmark: 80,
+      evText: "3 verified repositories, 1 certification, 128 LeetCode solves with Python.",
+      evidence: { projects: 3, certs: 1, assessments: 2, githubRepos: 6 },
+      recommendedAction: "Maintain mastery via quarterly benchmarking",
+      actionType: "assessment",
+      actionGain: "+1 readiness"
+    },
+    dsa: {
+      id: "dsa",
+      name: "Data Structures & Algorithms",
+      group: "prog",
+      groupName: "Programming",
+      category: "Problem Solving",
+      status: "mastered",
+      gapWord: "None",
+      currentLevel: "Advanced",
+      requiredLevel: "Intermediate",
+      score: 90,
+      benchmark: 75,
+      evText: "Codeforces 1428, 384 problems solved, top 9% in rated global contest.",
+      evidence: { projects: 1, certs: 0, assessments: 2, githubRepos: 2 },
+      recommendedAction: "Advanced Dynamic Programming Sprint",
+      actionType: "lab",
+      actionGain: "+2 readiness"
+    },
+    js: {
+      id: "js",
+      name: "TypeScript & Async JS",
+      group: "prog",
+      groupName: "Programming",
+      category: "Languages & Paradigms",
+      status: "developing",
+      gapWord: "Small",
+      currentLevel: "Intermediate",
+      requiredLevel: "Intermediate",
+      score: 72,
+      benchmark: 75,
+      evText: "2 projects in TypeScript, no formal assessment. Last tested 40 days ago.",
+      evidence: { projects: 2, certs: 0, assessments: 1, githubRepos: 4 },
+      recommendedAction: "Take Proctored TypeScript Architecture Test",
+      actionType: "assessment",
+      actionGain: "+2 readiness"
+    },
+    sql: {
+      id: "sql",
+      name: "SQL & Query Optimization",
+      group: "data",
+      groupName: "Data",
+      category: "Databases & Storage",
+      status: "mastered",
+      gapWord: "None",
+      currentLevel: "Advanced",
+      requiredLevel: "Advanced",
+      score: 88,
+      benchmark: 75,
+      evText: "Proctored assessment 88%, 2 production projects with indexing and schema design.",
+      evidence: { projects: 2, certs: 0, assessments: 1, githubRepos: 3 },
+      recommendedAction: "Distributed Relational Sharding Lab",
+      actionType: "lab",
+      actionGain: "+1 readiness"
+    },
+    pg: {
+      id: "pg",
+      name: "PostgreSQL & Transactions",
+      group: "data",
+      groupName: "Data",
+      category: "Databases & Storage",
+      status: "developing",
+      gapWord: "Small",
+      currentLevel: "Intermediate",
+      requiredLevel: "Intermediate",
+      score: 70,
+      benchmark: 75,
+      evText: "1 production project on PostgreSQL. ACID transaction evidence verified.",
+      evidence: { projects: 1, certs: 0, assessments: 0, githubRepos: 1 },
+      recommendedAction: "Link PostgreSQL Project Repo Evidence",
+      actionType: "project",
+      actionGain: "+3 readiness"
+    },
+    redis: {
+      id: "redis",
+      name: "Redis & In-Memory Caching",
+      group: "data",
+      groupName: "Data",
+      category: "Databases & Storage",
+      status: "gap",
+      gapWord: "Moderate",
+      currentLevel: "Basic",
+      requiredLevel: "Intermediate",
+      score: 48,
+      benchmark: 70,
+      evText: "Used in 1 project as basic cache. No pub/sub or clustering evidence.",
+      evidence: { projects: 1, certs: 0, assessments: 0, githubRepos: 1 },
+      recommendedAction: "Distributed Caching & Eviction Sprint",
+      actionType: "lab",
+      actionGain: "+3 readiness"
+    },
+    api: {
+      id: "api",
+      name: "REST & GraphQL API Architecture",
+      group: "sys",
+      groupName: "Systems",
+      category: "System Design",
+      status: "mastered",
+      gapWord: "None",
+      currentLevel: "Advanced",
+      requiredLevel: "Advanced",
+      score: 91,
+      benchmark: 80,
+      evText: "4 projects with public APIs, Razorpay internship evidence, assessment 91%.",
+      evidence: { projects: 4, certs: 0, assessments: 1, githubRepos: 5 },
+      recommendedAction: "GraphQL Federation & Gateway Architecture",
+      actionType: "lab",
+      actionGain: "+1 readiness"
+    },
+    auth: {
+      id: "auth",
+      name: "Authentication & OAuth 2.0 / JWT",
+      group: "sys",
+      groupName: "Systems",
+      category: "Security & Identity",
+      status: "developing",
+      gapWord: "Small",
+      currentLevel: "Intermediate",
+      requiredLevel: "Intermediate",
+      score: 74,
+      benchmark: 75,
+      evText: "JWT and OAuth implemented in 2 projects. No security audit assessment yet.",
+      evidence: { projects: 2, certs: 0, assessments: 0, githubRepos: 2 },
+      recommendedAction: "Web Security & RBAC Proctored Evaluation",
+      actionType: "assessment",
+      actionGain: "+2 readiness"
+    },
+    docker: {
+      id: "docker",
+      name: "Docker & Containerization",
+      group: "sys",
+      groupName: "Systems",
+      category: "DevOps & Infrastructure",
+      status: "gap",
+      gapWord: "Critical",
+      currentLevel: "Basic",
+      requiredLevel: "Intermediate",
+      score: 54,
+      benchmark: 75,
+      evText: "1 basic Dockerfile in project repo. No multi-stage build or deployment proof.",
+      evidence: { projects: 1, certs: 0, assessments: 0, githubRepos: 2 },
+      recommendedAction: "Launch 6-Hour Docker Containerization Sprint",
+      actionType: "lab",
+      actionGain: "+4 readiness"
+    },
+    cloud: {
+      id: "cloud",
+      name: "Cloud Architecture (AWS ECS/S3)",
+      group: "sys",
+      groupName: "Systems",
+      category: "DevOps & Infrastructure",
+      status: "gap",
+      gapWord: "Critical",
+      currentLevel: "Basic",
+      requiredLevel: "Intermediate",
+      score: 42,
+      benchmark: 70,
+      evText: "AWS free-tier account linked. No production services or IAM policies deployed.",
+      evidence: { projects: 0, certs: 0, assessments: 0, githubRepos: 0 },
+      recommendedAction: "Deploy Containerized Backend to AWS ECS",
+      actionType: "project",
+      actionGain: "+4 readiness"
+    }
+  };
+
+  const [selectedSkillId, setSelectedSkillId] = useState<string>("pg");
+  const currentSkill = skillsData[selectedSkillId] || skillsData["pg"];
+
+  // Filter skills by domain
+  const skillList = Object.values(skillsData);
+  const filteredSkills = skillList.filter((s) => {
+    if (domainFilter === "all") return true;
+    return s.group === domainFilter;
+  });
+
+  // Radar dimension data for the top overview
+  const competencyDimensions = [
+    { label: "Technical Core Skills", score: 82, benchmark: 70, status: "mastered" },
+    { label: "Architecture & Domain", score: 76, benchmark: 70, status: "mastered" },
+    { label: "Algorithmic Problem Solving", score: 88, benchmark: 75, status: "mastered" },
+    { label: "Practical Repository Evidence", score: 65, benchmark: 70, status: "gap" },
+    { label: "Production Reliability & Security", score: 74, benchmark: 75, status: "gap" },
+    { label: "Industry Readiness Composite", score: 78, benchmark: 70, status: "mastered" },
+  ];
+
+  // SVG Gauge calculations
+  const gaugeRadius = 52;
+  const gaugeCircumference = 2 * Math.PI * gaugeRadius;
+  const gaugeOffset = gaugeCircumference - (currentRole.score / 100) * gaugeCircumference;
+
   return (
     <>
+      {/* Toast Alert */}
+      {toastMsg && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "28px",
+            right: "28px",
+            background: "#181a20",
+            color: "#ffffff",
+            border: "1px solid rgba(255,255,255,0.14)",
+            borderRadius: "12px",
+            padding: "12px 20px",
+            fontSize: "13px",
+            boxShadow: "0 14px 40px rgba(0,0,0,0.6)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            animation: "fadeIn 0.2s ease-out",
+          }}
+        >
+          <CheckCircle2 style={{ width: "16px", height: "16px", color: "#34d399", flexShrink: 0 }} />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
       {/* SVG Icon Symbols */}
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
         <defs>
@@ -250,14 +371,10 @@ export default function StudentCompetencyCenterPage() {
           <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/></symbol>
           <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 21h4"/></symbol>
           <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></symbol>
-          <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
-          <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 16a8 8 0 1116 0"/><path d="M12 16l4-5"/><circle cx="12" cy="16" r="1"/></symbol>
-          <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></symbol>
-          <symbol id="i-award" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.5L8 21l4-2 4 2-1-7.5"/></symbol>
         </defs>
       </svg>
 
-      <div className="shell">
+      <div className="shell" style={{ background: "#0b0c10" }}>
         {/* Left Rail Sidebar */}
         <aside className="rail" aria-label="Sidebar">
           <Link className="brand" href="/">
@@ -266,19 +383,24 @@ export default function StudentCompetencyCenterPage() {
             </span>
             SkillSetu
           </Link>
+
           <nav className="nav" aria-label="Student">
             <Link href="/student/dashboard"><svg><use href="#i-grid"/></svg>Dashboard</Link>
-            <Link href="/student/competency" aria-current="page"><svg><use href="#i-spark"/></svg>My skills</Link>
+            <Link href="/student/competency" aria-current="page"><svg><use href="#i-spark"/></svg>Competency center</Link>
             <Link href="/student/competency"><svg><use href="#i-clip"/></svg>Assessments</Link>
             <Link href="/student/opportunities"><svg><use href="#i-case"/></svg>Opportunities</Link>
             <Link href="/student/opportunities"><svg><use href="#i-book"/></svg>Internships</Link>
             <Link href="/student/profile"><svg><use href="#i-id"/></svg>Skill passport</Link>
-            <div className="nav-label">Institution <svg style={{ width: "14px", height: "14px", transform: "rotate(-90deg)" }}><use href="#i-chev"/></svg></div>
+
+            <div className="nav-label">
+              Institution <svg style={{ width: "14px", height: "14px", transform: "rotate(-90deg)" }}><use href="#i-chev"/></svg>
+            </div>
             <Link href="/institution/dashboard"><svg><use href="#i-radio"/></svg>Placement command center</Link>
             <Link href="/institution/students"><svg><use href="#i-user"/></svg>Student intelligence</Link>
             <Link href="/institution/readiness"><svg><use href="#i-trend"/></svg>Industry demand</Link>
             <Link href="/institution/placements"><svg><use href="#i-pie"/></svg>Outcomes</Link>
           </nav>
+
           <nav className="nav rail-bottom" aria-label="Account">
             <Link href="/admin/system"><svg><use href="#i-gear"/></svg>Settings</Link>
             <Link href="/about"><svg><use href="#i-help"/></svg>Help</Link>
@@ -286,329 +408,1105 @@ export default function StudentCompetencyCenterPage() {
           </nav>
         </aside>
 
-        {/* Viewport Content */}
+        {/* Center Main Viewport */}
         <div>
           {/* Top Bar with Breadcrumb */}
-          <header className="topbar">
+          <header className="topbar" style={{ background: "rgba(11, 12, 16, 0.85)", backdropFilter: "blur(16px)" }}>
             <nav className="crumbs" aria-label="Breadcrumb">
-              <Link href="/student/competency">My skills</Link>
+              <Link href="/student/dashboard">Student</Link>
               <svg><use href="#i-chev"/></svg>
-              <span className="here">Competency center</span>
+              <span className="here" style={{ color: "#ffffff", fontWeight: 600 }}>Competency Intelligence & Knowledge Graph</span>
             </nav>
+
             <div className="topbar-right">
               <label className="search" style={{ position: "relative" }}>
                 <svg><use href="#i-search"/></svg>
                 <input
                   type="text"
-                  placeholder="Search skills and roles"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search skills, evidence, ontologies..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      showToast("Searching Neo4j ontology index...");
+                    }
+                  }}
                   style={{ background: "none", border: "none", outline: "none", color: "inherit", width: "100%", fontSize: "13px" }}
                 />
                 <kbd>⌘K</kbd>
               </label>
-              <button className="icon-btn" type="button" aria-label="Help" onClick={() => router.push("/about")}><svg><use href="#i-help"/></svg></button>
-              <button className="icon-btn" type="button" aria-label="2 unread notifications" onClick={() => showToast("Assessment results for Python passed at 94%")}><svg><use href="#i-bell"/></svg><span className="dot" aria-hidden="true"></span></button>
-              <Link href="/student/profile" className="avatar-sm" aria-label="Signed in as Aarav Sharma">AS</Link>
+
+              <button className="icon-btn" type="button" aria-label="Help" onClick={() => router.push("/about")}>
+                <svg><use href="#i-help"/></svg>
+              </button>
+
+              <button className="icon-btn" type="button" aria-label="Notifications" onClick={() => showToast("Graph synchronized with 18 verified competencies")}>
+                <svg><use href="#i-bell"/></svg>
+                <span className="dot" aria-hidden="true" />
+              </button>
+
+              <Link href="/student/profile" className="avatar-sm" aria-label="Signed in as Aarav Sharma">
+                AS
+              </Link>
             </div>
           </header>
 
-          <main>
-            <div className="page">
+          <main style={{ padding: "80px 28px 60px", maxWidth: "1340px", margin: "0 auto" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
-              {/* Title Row */}
-              <div className="title-row">
+              {/* Header Hero Banner with Role Blueprint Switcher */}
+              <div
+                style={{
+                  background: "linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "20px",
+                  padding: "24px 28px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "20px",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+                }}
+              >
                 <div>
-                  <h1>Competency center</h1>
-                  <p>What you can prove today, where the gaps are for the role you want, and what to do next.</p>
-                </div>
-                <div style={{ position: "relative" }}>
-                  <button
-                    className="select"
-                    type="button"
-                    aria-label="Target role"
-                    onClick={() => setShowRoleMenu(!showRoleMenu)}
-                  >
-                    Target role: {selectedRole} <svg><use href="#i-chev"/></svg>
-                  </button>
-                  {showRoleMenu && (
-                    <div
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.02em", margin: 0 }}>
+                      Competency Center & Ontology
+                    </h1>
+                    <span
                       style={{
-                        position: "absolute",
-                        top: "100%",
-                        right: 0,
-                        marginTop: "6px",
-                        background: "var(--card)",
-                        border: "1px solid var(--border)",
-                        borderRadius: "14px",
-                        padding: "6px",
-                        zIndex: 40,
-                        boxShadow: "var(--shadow-floating)",
-                        width: "220px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: "rgba(59, 130, 246, 0.12)",
+                        border: "1px solid rgba(59, 130, 246, 0.25)",
+                        color: "#60a5fa",
+                        fontSize: "11.5px",
+                        fontWeight: 600,
+                        padding: "2px 10px",
+                        borderRadius: "999px",
                       }}
                     >
-                      <div style={{ fontSize: "11px", color: "var(--muted-foreground)", padding: "4px 8px" }}>
-                        Switch Target Blueprint
+                      <GitBranch style={{ width: "12px", height: "12px" }} />
+                      Neo4j Dynamic Graph Topology
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: "13.5px", color: "#94a3b8", marginTop: "4px", margin: "4px 0 0" }}>
+                    Verified proof-of-work, dynamic competency graph topology, and hiring distance vectors.
+                  </p>
+                </div>
+
+                {/* Blueprint Selector & Action Tools */}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                  
+                  {/* Role Blueprint Selector */}
+                  <div style={{ position: "relative" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowRoleMenu(!showRoleMenu)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        height: "38px",
+                        padding: "0 14px",
+                        borderRadius: "12px",
+                        background: "#18191f",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        color: "#f8fafc",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      <Target style={{ width: "15px", height: "15px", color: "#60a5fa" }} />
+                      <span>Blueprint: <b>{selectedRole}</b></span>
+                      <ChevronDown style={{ width: "14px", height: "14px", color: "#94a3b8" }} />
+                    </button>
+
+                    {showRoleMenu && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "100%",
+                          right: 0,
+                          marginTop: "6px",
+                          background: "#1c1d23",
+                          border: "1px solid rgba(255,255,255,0.14)",
+                          borderRadius: "14px",
+                          padding: "6px",
+                          zIndex: 50,
+                          boxShadow: "0 16px 36px rgba(0,0,0,0.6)",
+                          width: "240px",
+                        }}
+                      >
+                        <div style={{ fontSize: "11px", color: "#64748b", padding: "4px 10px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>
+                          Select Target Role
+                        </div>
+                        {Object.keys(roleBlueprints).map((role) => (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => {
+                              setSelectedRole(role);
+                              setShowRoleMenu(false);
+                              showToast(`Graph recalculated for ${role} hiring rubric`);
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              width: "100%",
+                              padding: "8px 10px",
+                              borderRadius: "8px",
+                              fontSize: "13px",
+                              background: selectedRole === role ? "rgba(37, 99, 235, 0.2)" : "none",
+                              color: selectedRole === role ? "#60a5fa" : "#e2e8f0",
+                              border: "none",
+                              cursor: "pointer",
+                              textAlign: "left",
+                            }}
+                          >
+                            <span>{role}</span>
+                            {selectedRole === role && <CheckCircle2 style={{ width: "14px", height: "14px", color: "#60a5fa" }} />}
+                          </button>
+                        ))}
                       </div>
-                      {[
-                        "Backend developer",
-                        "AI Platform engineer",
-                        "Fullstack engineer",
-                        "DevOps Specialist"
-                      ].map((role) => (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => {
-                            setSelectedRole(role);
-                            setShowRoleMenu(false);
-                            showToast(`Target goal updated to ${role}`);
-                          }}
+                    )}
+                  </div>
+
+                  {/* Sync Button */}
+                  <button
+                    type="button"
+                    onClick={() => showToast("Synchronizing graph nodes with live GitHub & institutional ledger...")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      height: "38px",
+                      padding: "0 14px",
+                      borderRadius: "12px",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "#e2e8f0",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <RefreshCw style={{ width: "14px", height: "14px" }} />
+                    <span>Sync Graph</span>
+                  </button>
+
+                  {/* Add Evidence CTA */}
+                  <button
+                    type="button"
+                    onClick={() => router.push("/student/profile")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      height: "38px",
+                      padding: "0 14px",
+                      borderRadius: "12px",
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      boxShadow: "0 4px 14px rgba(37, 99, 235, 0.35)",
+                    }}
+                  >
+                    <Plus style={{ width: "15px", height: "15px" }} />
+                    <span>Add Evidence Node</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* TIER 1: Competency Mastery & Hiring Distance Vector (12 Cols Bento) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "20px" }}>
+                
+                {/* LEFT (7 cols): Overall Competency & Radar Vector Command */}
+                <div
+                  style={{
+                    gridColumn: "span 7",
+                    background: "#141519",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "20px",
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    gap: "20px",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div>
+                    {/* Header */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <ShieldCheck style={{ width: "16px", height: "16px", color: "#3b82f6" }} />
+                        <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", margin: 0 }}>
+                          Overall Competency Topology
+                        </h2>
+                      </div>
+
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: "#34d399",
+                          background: "rgba(16, 185, 129, 0.12)",
+                          border: "1px solid rgba(16, 185, 129, 0.25)",
+                          padding: "2px 8px",
+                          borderRadius: "999px",
+                        }}
+                      >
+                        ● {currentRole.status}
+                      </span>
+                    </div>
+
+                    {/* Gauge + 6 Dual Benchmark Progress Bars */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "28px", marginTop: "20px", flexWrap: "wrap" }}>
+                      
+                      {/* Circular Gauge */}
+                      <div style={{ position: "relative", width: "128px", height: "128px", flexShrink: 0 }}>
+                        <svg width="128" height="128" viewBox="0 0 128 128" style={{ transform: "rotate(-90deg)" }}>
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r={gaugeRadius}
+                            stroke="rgba(255, 255, 255, 0.08)"
+                            strokeWidth="8"
+                            fill="none"
+                          />
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r={gaugeRadius}
+                            stroke="#3b82f6"
+                            strokeWidth="8"
+                            strokeDasharray={gaugeCircumference}
+                            strokeDashoffset={gaugeOffset}
+                            strokeLinecap="round"
+                            fill="none"
+                          />
+                        </svg>
+                        <div
                           style={{
-                            display: "block",
-                            width: "100%",
-                            textAlign: "left",
-                            padding: "6px 10px",
-                            borderRadius: "8px",
-                            fontSize: "13px",
-                            background: selectedRole === role ? "var(--accent)" : "none",
-                            border: "none",
-                            cursor: "pointer"
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
                           }}
                         >
-                          {role}
+                          <div style={{ fontSize: "28px", fontWeight: 800, color: "#ffffff", lineHeight: 1, fontFamily: "var(--font-mono)" }}>
+                            {currentRole.score}%
+                          </div>
+                          <div style={{ fontSize: "10.5px", fontWeight: 600, color: "#94a3b8", marginTop: "3px", textTransform: "uppercase" }}>
+                            Readiness
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dimension Dual Bars */}
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "8px", minWidth: "220px" }}>
+                        {competencyDimensions.map((dim) => {
+                          const isGap = dim.status === "gap";
+                          return (
+                            <div key={dim.label} style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11.5px" }}>
+                                <span style={{ color: "#94a3b8" }}>{dim.label}</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                  <span style={{ fontSize: "10px", color: "#64748b" }}>Bar: {dim.benchmark}%</span>
+                                  <b style={{ color: isGap ? "#fbbf24" : "#ffffff", fontFamily: "var(--font-mono)" }}>
+                                    {dim.score}%
+                                  </b>
+                                </div>
+                              </div>
+
+                              <div style={{ position: "relative", height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "999px" }}>
+                                <div
+                                  style={{
+                                    width: `${dim.score}%`,
+                                    height: "100%",
+                                    background: isGap ? "#f59e0b" : "#3b82f6",
+                                    borderRadius: "999px",
+                                  }}
+                                />
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "-2px",
+                                    left: `${dim.benchmark}%`,
+                                    width: "2px",
+                                    height: "9px",
+                                    background: "rgba(255, 255, 255, 0.4)",
+                                    borderRadius: "1px",
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* Footer note */}
+                  <div
+                    style={{
+                      borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                      paddingTop: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      fontSize: "12px",
+                      color: "#94a3b8",
+                      flexWrap: "wrap",
+                      gap: "10px",
+                    }}
+                  >
+                    <span>Strongest in <b>Python, SQL, and API Architecture</b>. Cloud & Docker are primary gap areas.</span>
+                    <button
+                      type="button"
+                      onClick={() => showToast("Launching full 45-minute AI diagnostic test...")}
+                      style={{
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        border: "none",
+                        padding: "6px 14px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Take Assessment
+                    </button>
+                  </div>
+                </div>
+
+                {/* RIGHT (5 cols): Target Role Hiring Distance Radar */}
+                <div
+                  style={{
+                    gridColumn: "span 5",
+                    background: "#141519",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "20px",
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    gap: "14px",
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Target style={{ width: "16px", height: "16px", color: "#f59e0b" }} />
+                        <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", margin: 0 }}>
+                          Role Blueprint Gap Matrix
+                        </h2>
+                      </div>
+                      <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 600 }}>
+                        {selectedRole}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
+                      Matched against {currentRole.matchedRolesCount} live requisitions at {currentRole.companies}.
+                    </div>
+
+                    {/* Core Skills Verified (Green) */}
+                    <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "#34d399", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                        ✓ Mastered Core Dimensions
+                      </div>
+                      
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                        <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
+                          <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>94%</b>
+                          <span style={{ fontSize: "11px", color: "#94a3b8" }}>Python</span>
+                        </div>
+                        <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
+                          <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>91%</b>
+                          <span style={{ fontSize: "11px", color: "#94a3b8" }}>APIs</span>
+                        </div>
+                        <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
+                          <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>88%</b>
+                          <span style={{ fontSize: "11px", color: "#94a3b8" }}>SQL</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Gaps (Amber) */}
+                    <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "#fbbf24", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                        ⚠ Active Competency Gaps
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
+                          <div>
+                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>Docker</span>
+                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need Intermediate</span>
+                          </div>
+                          <span style={{ color: "#fbbf24", fontWeight: 700 }}>54%</span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
+                          <div>
+                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>Cloud AWS</span>
+                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need ECS/S3</span>
+                          </div>
+                          <span style={{ color: "#fbbf24", fontWeight: 700 }}>42%</span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
+                          <div>
+                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>System Design</span>
+                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Needs Distributed Caching</span>
+                          </div>
+                          <span style={{ color: "#fbbf24", fontWeight: 700 }}>51%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* AI Remediation CTA */}
+                  <button
+                    type="button"
+                    onClick={() => showToast("AI Engine generating customized 2-week gap closure roadmap...")}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "10px",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "#f8fafc",
+                      fontSize: "12.5px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Sparkles style={{ width: "14px", height: "14px", color: "#a78bfa" }} />
+                    <span>Generate AI Gap Remediation Roadmap</span>
+                  </button>
+                </div>
+
+              </div>
+
+              {/* TIER 2: Master Interactive Knowledge Graph & Node Inspector (12 Cols) */}
+              <div
+                style={{
+                  background: "#141519",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "20px",
+                  padding: "24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "20px",
+                }}
+              >
+                {/* Graph Controls Bar */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Boxes style={{ width: "18px", height: "18px", color: "#3b82f6" }} />
+                      <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", margin: 0 }}>
+                        Interactive Knowledge Graph Topology
+                      </h2>
+                    </div>
+                    <span style={{ fontSize: "11.5px", color: "#64748b" }}>
+                      Click any node to audit verified evidence and gaps
+                    </span>
+                  </div>
+
+                  {/* Domain Filters & View Switcher */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    
+                    {/* Domain Filter Pills */}
+                    <div style={{ display: "flex", gap: "4px", background: "rgba(255,255,255,0.04)", padding: "3px", borderRadius: "10px" }}>
+                      {[
+                        { id: "all", label: "All Domains" },
+                        { id: "prog", label: "Programming" },
+                        { id: "data", label: "Data & Storage" },
+                        { id: "sys", label: "Systems & Cloud" },
+                      ].map((d) => (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => setDomainFilter(d.id as any)}
+                          style={{
+                            background: domainFilter === d.id ? "#2563eb" : "none",
+                            color: domainFilter === d.id ? "#ffffff" : "#94a3b8",
+                            border: "none",
+                            padding: "4px 10px",
+                            borderRadius: "7px",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {d.label}
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Row 1: Competency Overview + Target Role Readiness */}
-              <div className="grid-2">
-
-                {/* Card 1: Overview */}
-                <section className="plate card">
-                  <div className="card-head">
-                    <h3><svg><use href="#i-gauge"/></svg>Competency overview</h3>
-                    <button className="seeall" type="button" onClick={() => showToast("Opening full competency matrix report...")}>Full report <span className="arr" aria-hidden="true">›</span></button>
-                  </div>
-                  <div className="inset auto overview">
-                    <div>
-                      <div className="ring-lg" role="img" aria-label="Overall competency 78 percent, industry ready">
-                        <svg viewBox="0 0 168 168">
-                          <circle className="track" cx="84" cy="84" r="74" fill="none" strokeWidth="10"/>
-                          <circle className="fill" cx="84" cy="84" r="74" fill="none" strokeWidth="10" strokeDasharray="362.7 465"/>
-                        </svg>
-                        <div className="val">
-                          <span className="k">Overall competency</span>
-                          <span className="n num">78<small>%</small></span>
-                          <span className="chip chip-ok"><span className="d" aria-hidden="true"></span><span>Industry ready</span></span>
-                        </div>
-                      </div>
-                      <p className="summary">
-                        <b>Strongest in Python, SQL and API design.</b> Cloud deployment, system design and security are where the next points come from.
-                      </p>
-                    </div>
-
-                    <div className="dims" role="list" aria-label="Competency dimensions">
-                      <div className="dim" role="listitem"><span className="k">Technical skills</span><span className="v num">82%</span><span className="b"><i style={{ width: "82%" }}></i><em style={{ left: "70%" }}></em></span></div>
-                      <div className="dim" role="listitem"><span className="k">Domain skills</span><span className="v num">76%</span><span className="b"><i style={{ width: "76%" }}></i><em style={{ left: "70%" }}></em></span></div>
-                      <div className="dim" role="listitem"><span className="k">Problem solving</span><span className="v num">88%</span><span className="b"><i style={{ width: "88%" }}></i><em style={{ left: "70%" }}></em></span></div>
-                      <div className="dim" role="listitem"><span className="k">Communication</span><span className="v num">71%</span><span className="b"><i style={{ width: "71%" }}></i><em style={{ left: "70%" }}></em></span></div>
-                      <div className="dim weak" role="listitem"><span className="k">Practical experience</span><span className="v num">65%</span><span className="b"><i style={{ width: "65%" }}></i><em style={{ left: "70%" }}></em></span></div>
-                      <div className="dim" role="listitem"><span className="k">Industry readiness</span><span className="v num">78%</span><span className="b"><i style={{ width: "78%" }}></i><em style={{ left: "70%" }}></em></span></div>
-                      <div className="dim" role="listitem"><span className="k">Evidence strength</span><span className="v num">74%</span><span className="b"><i style={{ width: "74%" }}></i><em style={{ left: "70%" }}></em></span></div>
-                    </div>
-
-                    <div className="overview-foot">
-                      <span>The tick on each bar is the 70 the role asks for. One dimension is below it.</span>
-                      <button className="btn btn-primary" type="button" style={{ height: "32px", fontSize: "13px" }} onClick={() => showToast("Launching Proctored Challenge Lab...")}>
-                        <svg><use href="#i-clip"/></svg>Take an assessment
+                    {/* View Switcher */}
+                    <div style={{ display: "flex", gap: "4px", background: "rgba(255,255,255,0.04)", padding: "3px", borderRadius: "10px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveViewMode("graph")}
+                        style={{
+                          background: activeViewMode === "graph" ? "rgba(255,255,255,0.12)" : "none",
+                          color: activeViewMode === "graph" ? "#ffffff" : "#94a3b8",
+                          border: "none",
+                          padding: "4px 10px",
+                          borderRadius: "7px",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Topology
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveViewMode("matrix")}
+                        style={{
+                          background: activeViewMode === "matrix" ? "rgba(255,255,255,0.12)" : "none",
+                          color: activeViewMode === "matrix" ? "#ffffff" : "#94a3b8",
+                          border: "none",
+                          padding: "4px 10px",
+                          borderRadius: "7px",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Matrix
                       </button>
                     </div>
-                  </div>
-                </section>
 
-                {/* Card 2: Role Readiness */}
-                <section className="plate card">
-                  <div className="card-head">
-                    <h3><svg><use href="#i-case"/></svg>Target role readiness</h3>
-                    <button className="seeall" type="button" onClick={() => router.push("/student/dashboard")}>Roadmap <span className="arr" aria-hidden="true">›</span></button>
                   </div>
-                  <div className="inset auto" style={{ display: "flex", flexDirection: "column", paddingBottom: "8px" }}>
-                    <div className="role-head">
-                      <div className="ring" role="img" aria-label="Role readiness 78 percent">
-                        <svg viewBox="0 0 84 84">
-                          <circle className="track" cx="42" cy="42" r="36" fill="none" strokeWidth="6"/>
-                          <circle className="fill" cx="42" cy="42" r="36" fill="none" strokeWidth="6" strokeDasharray="176.4 226.2"/>
-                        </svg>
-                        <div className="val num">78<small>%</small></div>
-                      </div>
-                      <div>
-                        <div className="t">Backend developer</div>
-                        <div className="s">Matched against 14 open roles at Razorpay, Zomato, CRED</div>
+                </div>
+
+                {/* Graph + Inspector Split (8 cols + 4 cols) */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "20px" }}>
+                  
+                  {/* LEFT (8 cols): Interactive Visual Topology Canvas */}
+                  <div
+                    style={{
+                      gridColumn: "span 8",
+                      background: "#0d0e13",
+                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      borderRadius: "16px",
+                      padding: "24px",
+                      position: "relative",
+                      minHeight: "440px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Background Grid Pattern */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        backgroundImage: "radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)",
+                        backgroundSize: "24px 24px",
+                        opacity: 0.4,
+                        pointerEvents: "none",
+                      }}
+                    />
+
+                    {/* Root Blueprint Hub */}
+                    <div style={{ textAlign: "center", position: "relative", zIndex: 10 }}>
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+                          border: "1.5px solid #3b82f6",
+                          padding: "8px 20px",
+                          borderRadius: "999px",
+                          color: "#ffffff",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          boxShadow: "0 0 20px rgba(59, 130, 246, 0.25)",
+                        }}
+                      >
+                        <Cpu style={{ width: "15px", height: "15px", color: "#60a5fa" }} />
+                        <span>{selectedRole} (Core Taxonomy Hub)</span>
                       </div>
                     </div>
 
-                    <div className="group-label">Core skills</div>
-                    <div className="row"><span>Python</span><span className="lvl">advanced</span><span className="pct ok num">94% <svg><use href="#i-check"/></svg></span></div>
-                    <div className="row"><span>SQL</span><span className="lvl">advanced</span><span className="pct ok num">88% <svg><use href="#i-check"/></svg></span></div>
-                    <div className="row"><span>REST APIs</span><span className="lvl">advanced</span><span className="pct ok num">91% <svg><use href="#i-check"/></svg></span></div>
-
-                    <div className="group-label">Development areas</div>
-                    <div className="row"><span>Docker</span><span className="lvl">needs intermediate</span><span className="pct warn num">54%</span></div>
-                    <div className="row"><span>Cloud</span><span className="lvl">needs intermediate</span><span className="pct warn num">62%</span></div>
-                    <div className="row"><span>System design</span><span className="lvl">needs intermediate</span><span className="pct warn num">51%</span></div>
-
-                    <div className="role-foot">
-                      <span className="warn" style={{ fontWeight: 500 }}>3 gaps remain</span>
-                      <button className="btn btn-secondary" type="button" onClick={() => router.push("/student/opportunities")}>View role requirements</button>
+                    {/* Mid Tier: Domain Hubs */}
+                    <div style={{ display: "flex", justifyContent: "space-around", position: "relative", zIndex: 10, margin: "14px 0" }}>
+                      {[
+                        { name: "Programming Domain", color: "#60a5fa" },
+                        { name: "Data & Storage Domain", color: "#a78bfa" },
+                        { name: "Systems & Cloud Domain", color: "#34d399" },
+                      ].map((dom) => (
+                        <div
+                          key={dom.name}
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            color: dom.color,
+                            background: "rgba(255, 255, 255, 0.04)",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                            padding: "4px 12px",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          {dom.name}
+                        </div>
+                      ))}
                     </div>
+
+                    {/* Interactive Leaf Nodes Grid */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", position: "relative", zIndex: 10 }}>
+                      {filteredSkills.map((sk) => {
+                        const isSelected = sk.id === selectedSkillId;
+                        const isMastered = sk.status === "mastered";
+                        const isGap = sk.status === "gap";
+
+                        return (
+                          <div
+                            key={sk.id}
+                            onClick={() => setSelectedSkillId(sk.id)}
+                            style={{
+                              background: isSelected
+                                ? "rgba(37, 99, 235, 0.25)"
+                                : "rgba(255, 255, 255, 0.03)",
+                              border: `1.5px solid ${
+                                isSelected
+                                  ? "#3b82f6"
+                                  : isGap
+                                  ? "rgba(245, 158, 11, 0.3)"
+                                  : "rgba(255, 255, 255, 0.08)"
+                              }`,
+                              borderRadius: "12px",
+                              padding: "10px 12px",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                              boxShadow: isSelected ? "0 0 16px rgba(59, 130, 246, 0.3)" : "none",
+                              transform: isSelected ? "scale(1.03)" : "scale(1)",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span
+                                style={{
+                                  width: "6px",
+                                  height: "6px",
+                                  borderRadius: "999px",
+                                  background: isMastered ? "#34d399" : isGap ? "#fbbf24" : "#60a5fa",
+                                }}
+                              />
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#f8fafc", fontFamily: "var(--font-mono)" }}>
+                                {sk.score}%
+                              </span>
+                            </div>
+
+                            <div style={{ fontSize: "12px", fontWeight: 600, color: "#ffffff", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {sk.name.split("&")[0]}
+                            </div>
+
+                            <div style={{ fontSize: "10px", color: isGap ? "#fbbf24" : "#94a3b8", marginTop: "2px" }}>
+                              {isGap ? "Gap: " + sk.gapWord : sk.currentLevel}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Dynamic Evidence Node Branch */}
+                    <div
+                      style={{
+                        marginTop: "16px",
+                        background: "rgba(255, 255, 255, 0.02)",
+                        border: "1px dashed rgba(255, 255, 255, 0.12)",
+                        borderRadius: "12px",
+                        padding: "12px 16px",
+                        position: "relative",
+                        zIndex: 10,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#60a5fa", fontWeight: 600 }}>
+                          <GitBranch style={{ width: "13px", height: "13px" }} />
+                          <span>Active Evidence Branch for {currentSkill.name}:</span>
+                        </div>
+                        <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                          Cryptographically linked nodes
+                        </span>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginTop: "8px" }}>
+                        <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.projects}</b>
+                          <span style={{ color: "#94a3b8" }}>Verified Projects</span>
+                        </div>
+                        <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.certs}</b>
+                          <span style={{ color: "#94a3b8" }}>Certifications</span>
+                        </div>
+                        <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.assessments}</b>
+                          <span style={{ color: "#94a3b8" }}>Proctored Tests</span>
+                        </div>
+                        <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.githubRepos}</b>
+                          <span style={{ color: "#94a3b8" }}>GitHub Repos</span>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
-                </section>
+
+                  {/* RIGHT (4 cols): Deep Node Inspector Panel */}
+                  <div
+                    style={{
+                      gridColumn: "span 4",
+                      background: "#16171d",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: "16px",
+                      padding: "20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: "16px",
+                    }}
+                  >
+                    <div>
+                      {/* Node Header */}
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+                        <div>
+                          <span
+                            style={{
+                              fontSize: "10.5px",
+                              color: "#60a5fa",
+                              background: "rgba(59, 130, 246, 0.12)",
+                              border: "1px solid rgba(59, 130, 246, 0.25)",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {currentSkill.category}
+                          </span>
+                          <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#ffffff", margin: "6px 0 2px" }}>
+                            {currentSkill.name}
+                          </h3>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "20px", fontWeight: 800, color: "#ffffff", fontFamily: "var(--font-mono)" }}>
+                            {currentSkill.score}%
+                          </div>
+                          <div style={{ fontSize: "10.5px", color: currentSkill.status === "gap" ? "#fbbf24" : "#34d399", fontWeight: 600 }}>
+                            {currentSkill.status === "gap" ? "Gap: " + currentSkill.gapWord : "Mastered"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Level & Benchmark Comparison Box */}
+                      <div
+                        style={{
+                          background: "rgba(255, 255, 255, 0.025)",
+                          border: "1px solid rgba(255, 255, 255, 0.06)",
+                          borderRadius: "12px",
+                          padding: "12px 14px",
+                          display: "grid",
+                          gridTemplateColumns: "repeat(2, 1fr)",
+                          gap: "10px",
+                          marginTop: "14px",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>Current Competency</div>
+                          <b style={{ color: "#ffffff", fontSize: "13px" }}>{currentSkill.currentLevel}</b>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>Target Role Requirement</div>
+                          <b style={{ color: "#60a5fa", fontSize: "13px" }}>{currentSkill.requiredLevel}</b>
+                        </div>
+                      </div>
+
+                      {/* Evidence Audit Text */}
+                      <div style={{ marginTop: "14px" }}>
+                        <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#cbd5e1" }}>
+                          Verified Evidence Audit
+                        </div>
+                        <p style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.5, marginTop: "4px" }}>
+                          {currentSkill.evText}
+                        </p>
+                      </div>
+
+                      {/* Actionable Next Step */}
+                      <div
+                        style={{
+                          background: "rgba(37, 99, 235, 0.08)",
+                          border: "1px solid rgba(37, 99, 235, 0.2)",
+                          borderRadius: "12px",
+                          padding: "12px",
+                          marginTop: "14px",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#60a5fa", textTransform: "uppercase" }}>
+                            RECOMMENDED ACTION
+                          </span>
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399" }}>
+                            {currentSkill.actionGain}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "12.5px", fontWeight: 600, color: "#f8fafc", marginTop: "3px" }}>
+                          {currentSkill.recommendedAction}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      type="button"
+                      onClick={() => showToast(`Executing action for ${currentSkill.name}...`)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "10px",
+                        background: "#2563eb",
+                        color: "#ffffff",
+                        border: "none",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span>Take Action on {currentSkill.name.split("&")[0]}</span>
+                      <ArrowUpRight style={{ width: "15px", height: "15px" }} />
+                    </button>
+                  </div>
+
+                </div>
               </div>
 
-              {/* Row 2: Interactive Competency Map */}
-              <section className="plate card">
-                <div className="card-head">
-                  <h3><svg><use href="#i-grid"/></svg>Competency map</h3>
-                  <span className="muted" style={{ fontSize: "12px", paddingRight: "6px" }}>Select a skill to see its evidence and gap</span>
-                </div>
-                <div className="inset auto map">
-                  <div className="tree" ref={treeRef} id="tree">
-                    {/* SVG Connecting Wires */}
-                    <svg className="wires" id="wires" aria-hidden="true">
-                      {wirePaths.map((w, idx) => (
-                        <path key={idx} d={w.d} className={w.on ? "on" : ""} />
-                      ))}
-                    </svg>
-
-                    <div className="lvl-row">
-                      <span className="node root" data-id="root">{selectedRole}</span>
+              {/* TIER 3: Strategic Next Vectors & Action Sandbox (4 Columns) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
+                
+                {/* VECTOR 1 */}
+                <div
+                  style={{
+                    background: "#141519",
+                    border: "1px solid rgba(255, 255, 255, 0.07)",
+                    borderRadius: "16px",
+                    padding: "18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#60a5fa", background: "rgba(59, 130, 246, 0.12)", padding: "1px 6px", borderRadius: "4px" }}>
+                        ASSESSMENT
+                      </span>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399" }}>+4 pts</span>
                     </div>
-
-                    <div className="lvl-row">
-                      <span className="node group" data-id="prog" data-parent="root">Programming</span>
-                      <span className="node group" data-id="data" data-parent="root">Data</span>
-                      <span className="node group" data-id="sys" data-parent="root">Systems</span>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff", marginTop: "6px" }}>
+                      Docker Proctored Challenge
                     </div>
-
-                    <div className="lvl-row leaves">
-                      <div className="branch">
-                        <button className="node leaf" type="button" data-id="python" data-parent="prog" aria-pressed={selectedSkillId === "python"} onClick={() => setSelectedSkillId("python")}><span className="d"></span>Python</button>
-                        <button className="node leaf" type="button" data-id="js" data-parent="prog" data-gap="small" aria-pressed={selectedSkillId === "js"} onClick={() => setSelectedSkillId("js")}><span className="d"></span>JavaScript</button>
-                        <button className="node leaf" type="button" data-id="dsa" data-parent="prog" aria-pressed={selectedSkillId === "dsa"} onClick={() => setSelectedSkillId("dsa")}><span className="d"></span>DSA</button>
-                      </div>
-
-                      <div className="branch">
-                        <button className="node leaf" type="button" data-id="sql" data-parent="data" aria-pressed={selectedSkillId === "sql"} onClick={() => setSelectedSkillId("sql")}><span className="d"></span>SQL</button>
-                        <button className="node leaf" type="button" data-id="pg" data-parent="data" data-gap="small" aria-pressed={selectedSkillId === "pg"} onClick={() => setSelectedSkillId("pg")}><span className="d"></span>PostgreSQL</button>
-                        <button className="node leaf" type="button" data-id="redis" data-parent="data" data-gap="moderate" aria-pressed={selectedSkillId === "redis"} onClick={() => setSelectedSkillId("redis")}><span className="d"></span>Redis</button>
-                      </div>
-
-                      <div className="branch">
-                        <button className="node leaf" type="button" data-id="api" data-parent="sys" aria-pressed={selectedSkillId === "api"} onClick={() => setSelectedSkillId("api")}><span className="d"></span>APIs</button>
-                        <button className="node leaf" type="button" data-id="auth" data-parent="sys" data-gap="small" aria-pressed={selectedSkillId === "auth"} onClick={() => setSelectedSkillId("auth")}><span className="d"></span>Authentication</button>
-                        <button className="node leaf" type="button" data-id="docker" data-parent="sys" data-gap="moderate" aria-pressed={selectedSkillId === "docker"} onClick={() => setSelectedSkillId("docker")}><span className="d"></span>Docker</button>
-                        <button className="node leaf" type="button" data-id="cloud" data-parent="sys" data-gap="large" aria-pressed={selectedSkillId === "cloud"} onClick={() => setSelectedSkillId("cloud")}><span className="d"></span>Cloud</button>
-                      </div>
-                    </div>
-
-                    <div className="lvl-row">
-                      <span className="node evidence" data-id="evidence" data-parent="__selected">Evidence</span>
-                    </div>
-
-                    <div className="lvl-row" style={{ gap: "8px", flexWrap: "wrap" }}>
-                      <span className="node src" data-id="s1" data-parent="evidence"><b>{currentSkill.evidence[0]}</b>&nbsp;project</span>
-                      <span className="node src" data-id="s2" data-parent="evidence"><b>{currentSkill.evidence[1]}</b>&nbsp;certifications</span>
-                      <span className="node src" data-id="s3" data-parent="evidence"><b>{currentSkill.evidence[2]}</b>&nbsp;assessments</span>
-                      <span className="node src" data-id="s4" data-parent="evidence"><b>{currentSkill.evidence[3]}</b>&nbsp;GitHub repos</span>
-                    </div>
+                    <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "2px" }}>
+                      25 minutes · Multi-stage build & Docker Compose verification.
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => showToast("Starting Docker Proctored Challenge...")}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "#f8fafc",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                  >
+                    Launch Assessment →
+                  </button>
+                </div>
 
-                  {/* Aside Detail Panel */}
-                  <aside className="detail" id="detail" aria-live="polite">
-                    <div className="t">{currentSkill.name}</div>
-                    <div className="s">{currentSkill.groupName}</div>
-                    <dl>
-                      <dt>Current</dt><dd>{currentSkill.cur}</dd>
-                      <dt>Required</dt><dd>{currentSkill.req}</dd>
-                      <dt>Verified</dt><dd className="num">{currentSkill.pct}%</dd>
-                      <dt>Gap</dt><dd className={currentSkill.gap === "none" ? "ok" : currentSkill.gap === "small" ? "" : "warn"}>{currentSkill.gapWord}</dd>
-                    </dl>
-                    <p className="ev">{currentSkill.evText}</p>
-                    <button
-                      className="btn btn-primary"
-                      type="button"
-                      onClick={() => showToast(`Generating milestone path for ${currentSkill.name}...`)}
-                    >
-                      {currentSkill.gap === "none" ? `Keep ${currentSkill.name} current` : `Plan for ${currentSkill.name}`}
-                    </button>
-                  </aside>
+                {/* VECTOR 2 */}
+                <div
+                  style={{
+                    background: "#141519",
+                    border: "1px solid rgba(255, 255, 255, 0.07)",
+                    borderRadius: "16px",
+                    padding: "18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#fbbf24", background: "rgba(245, 158, 11, 0.12)", padding: "1px 6px", borderRadius: "4px" }}>
+                        CURRICULUM SPRINT
+                      </span>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399" }}>+3 pts</span>
+                    </div>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff", marginTop: "6px" }}>
+                      Distributed Caching with Redis
+                    </div>
+                    <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "2px" }}>
+                      Interactive hands-on lab · Cache stampede & TTL strategies.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => showToast("Opening Redis Interactive Lab Sandbox...")}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "#f8fafc",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                  >
+                    Start Lab Sandbox →
+                  </button>
                 </div>
-              </section>
 
-              {/* Row 3: Recommended Next Steps */}
-              <section className="plate card">
-                <div className="card-head">
-                  <h3><svg><use href="#i-trend"/></svg>Recommended next steps</h3>
-                  <span className="muted" style={{ fontSize: "12px", paddingRight: "6px" }}>Ordered by how much each moves your readiness</span>
+                {/* VECTOR 3 */}
+                <div
+                  style={{
+                    background: "#141519",
+                    border: "1px solid rgba(255, 255, 255, 0.07)",
+                    borderRadius: "16px",
+                    padding: "18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399", background: "rgba(16, 185, 129, 0.12)", padding: "1px 6px", borderRadius: "4px" }}>
+                        REPO EVIDENCE
+                      </span>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399" }}>+3 pts</span>
+                    </div>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff", marginTop: "6px" }}>
+                      Deploy API to AWS ECS
+                    </div>
+                    <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "2px" }}>
+                      Link repository with live demo URL to satisfy Cloud criteria.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/student/profile")}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "#f8fafc",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                  >
+                    Submit Repository →
+                  </button>
                 </div>
-                <div className="inset auto steps">
-                  <button className="step" type="button" onClick={() => showToast("Opening Docker 25-minute assessment challenge...")}>
-                    <svg><use href="#i-clip"/></svg>
-                    <span>Take a skill assessment<small>Docker, 25 minutes</small></span>
-                  </button>
-                  <button className="step" type="button" onClick={() => router.push("/student/dashboard")}>
-                    <svg><use href="#i-gauge"/></svg>
-                    <span>Work on skill gaps<small>3 open for this role</small></span>
-                  </button>
-                  <button className="step" type="button" onClick={() => router.push("/student/profile")}>
-                    <svg><use href="#i-code"/></svg>
-                    <span>Build a project<small>Deploy one API to cloud</small></span>
-                  </button>
-                  <button className="step" type="button" onClick={() => showToast("Enrolling in AWS Cloud Practitioner track...")}>
-                    <svg><use href="#i-award"/></svg>
-                    <span>Earn a certification<small>AWS Cloud Practitioner</small></span>
-                  </button>
-                  <button className="step" type="button" onClick={() => showToast("Subscribing to weekly readiness digest...")}>
-                    <svg><use href="#i-trend"/></svg>
-                    <span>Track progress<small>Weekly readiness digest</small></span>
+
+                {/* VECTOR 4 */}
+                <div
+                  style={{
+                    background: "#141519",
+                    border: "1px solid rgba(255, 255, 255, 0.07)",
+                    borderRadius: "16px",
+                    padding: "18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                  }}
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#a78bfa", background: "rgba(167, 139, 250, 0.12)", padding: "1px 6px", borderRadius: "4px" }}>
+                        CREDENTIAL
+                      </span>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399" }}>+2 pts</span>
+                    </div>
+                    <div style={{ fontSize: "13.5px", fontWeight: 600, color: "#ffffff", marginTop: "6px" }}>
+                      AWS Cloud Practitioner
+                    </div>
+                    <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "2px" }}>
+                      NCVET aligned · Recognized by Razorpay, Zomato, CRED.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => showToast("Verifying credential via Digilocker API gateway...")}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "#f8fafc",
+                      padding: "7px 12px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                  >
+                    Verify Credential →
                   </button>
                 </div>
-              </section>
+
+              </div>
 
             </div>
           </main>
         </div>
       </div>
-
-      {/* Toast Notification */}
-      {toastMsg && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: "14px",
-            padding: "12px 18px",
-            color: "var(--foreground)",
-            boxShadow: "var(--shadow-floating)",
-            fontSize: "13px",
-            fontWeight: 500,
-            zIndex: 60,
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <span style={{ width: "8px", height: "8px", borderRadius: "999px", background: "var(--primary)" }} />
-          <span>{toastMsg}</span>
-        </div>
-      )}
     </>
   );
 }

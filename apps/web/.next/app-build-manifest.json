@@ -35,6 +35,21 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/student/profile/page.js"
+    ],
+    "/student/opportunities/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/student/opportunities/page.js"
+    ],
+    "/institution/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/institution/dashboard/page.js"
+    ],
+    "/(public)/about/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(public)/about/page.js"
     ]
   }
 }
