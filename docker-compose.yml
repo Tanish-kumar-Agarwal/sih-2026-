@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # PostgreSQL (Ground truth database)
+  postgres:
+    image: postgres:16-alpine
+    container_name: skillsetu_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: skillsetu_db
+      POSTGRES_USER: skillsetu_user
+      POSTGRES_PASSWORD: skillsetu_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - skillsetu_net
+
+  # Neo4j (Relationship Intelligence & Graph Matchmaking)
+  neo4j:
+    image: neo4j:5.18.0-community
+    container_name: skillsetu_neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/skillsetu_graph_pass
+      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
+      NEO4J_dbms_security_procedures_unrestricted: 'apoc.*,gds.*'
+    ports:
+      - "7474:7474" # HTTP Browser
+      - "7687:7687" # Bolt Protocol
+    volumes:
+      - neo4j_data:/data
+      - ./infrastructure/init_neo4j.cypher:/var/lib/neo4j/import/init.cypher
+    networks:
+      - skillsetu_net
+
+  # Redis (Cache, Sessions & Task Queue)
+  redis:
+    image: redis:7-alpine
+    container_name: skillsetu_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - skillsetu_net
+
+  # Backend API
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: skillsetu_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://skillsetu_user:skillsetu_password@postgres:5432/skillsetu_db
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: skillsetu_graph_pass
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: skillsetu_super_secret_jwt_key_sih26
+      ENVIRONMENT: production
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - neo4j
+      - redis
+    networks:
+      - skillsetu_net
+
+  # Frontend Web App
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: skillsetu_web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - skillsetu_net
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  redis_data:
+
+networks:
+  skillsetu_net:
+    driver: bridge
