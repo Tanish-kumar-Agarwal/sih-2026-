@@ -359,7 +359,7 @@ export default function StudentProfileView({ student }: StudentProfileViewProps)
                 <button
                   className="action-btn-primary"
                   type="button"
-                  onClick={() => router.push(`/student/competency`)}
+                  onClick={() => router.push(`/student/passport`)}
                 >
                   <Eye style={{ width: "15px", height: "15px" }} />
                   <span>View skill passport</span>

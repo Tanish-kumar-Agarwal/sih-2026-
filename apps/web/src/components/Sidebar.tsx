@@ -33,7 +33,8 @@ export default function Sidebar({ role }: SidebarProps) {
   const navigationConfig = {
     student: [
       { name: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
-      { name: 'Competency Center', href: '/student/competency', icon: Network, highlight: true },
+      { name: 'Competency Center', href: '/student/competency', icon: Network },
+      { name: 'Skill Passport', href: '/student/passport', icon: Shield, highlight: true },
       { name: 'AI Matches', href: '/student/opportunities', icon: Sparkles },
       { name: 'Applications', href: '/student/applications', icon: FileCheck2 },
       { name: 'Portfolio & Profile', href: '/student/profile', icon: User },

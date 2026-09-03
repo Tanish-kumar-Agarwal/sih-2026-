@@ -1,7 +1,8 @@
 {
-  "/student/competency/page": "app/student/competency/page.js",
   "/student/profile/page": "app/student/profile/page.js",
-  "/student/opportunities/page": "app/student/opportunities/page.js",
-  "/institution/dashboard/page": "app/institution/dashboard/page.js",
+  "/student/passport/page": "app/student/passport/page.js",
+  "/admin/system/page": "app/admin/system/page.js",
+  "/institution/students/page": "app/institution/students/page.js",
+  "/institution/students/[id]/page": "app/institution/students/[id]/page.js",
   "/institution/readiness/page": "app/institution/readiness/page.js"
 }
