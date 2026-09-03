@@ -404,6 +404,67 @@ async def seed_database():
         await session.flush()
 
         # ----------------------------------------------------------------------
+        # 5b. Seed Canonical Skill Aliases (Synonyms / Raw Mentions)
+        # ----------------------------------------------------------------------
+        print("7b. Seeding canonical skill_aliases...")
+        from app.domains.competencies.normalization import normalize_skill_text
+        aliases_data = [
+            # React.js aliases
+            ("al-react-1", "sk-react-rsc", "React", normalize_skill_text("React")),
+            ("al-react-2", "sk-react-rsc", "ReactJS", normalize_skill_text("ReactJS")),
+            ("al-react-3", "sk-react-rsc", "React JS", normalize_skill_text("React JS")),
+            ("al-react-4", "sk-react-rsc", "react.js", normalize_skill_text("react.js")),
+            # Python aliases
+            ("al-py-1", "sk-py-oop", "Python", normalize_skill_text("Python")),
+            ("al-py-2", "sk-py-oop", "Python 3", normalize_skill_text("Python 3")),
+            ("al-py-3", "sk-py-oop", "Python OOP", normalize_skill_text("Python OOP")),
+            ("al-py-4", "sk-async-io", "AsyncIO", normalize_skill_text("AsyncIO")),
+            ("al-py-5", "sk-async-io", "Async IO", normalize_skill_text("Async IO")),
+            # FastAPI aliases
+            ("al-fa-1", "sk-fastapi-schemas", "FastAPI", normalize_skill_text("FastAPI")),
+            ("al-fa-2", "sk-fastapi-schemas", "Fast API", normalize_skill_text("Fast API")),
+            ("al-fa-3", "sk-fastapi-schemas", "FastAPI REST", normalize_skill_text("FastAPI REST")),
+            # PostgreSQL aliases
+            ("al-pg-1", "sk-pg-indexing", "Postgres", normalize_skill_text("Postgres")),
+            ("al-pg-2", "sk-pg-indexing", "PostgreSQL", normalize_skill_text("PostgreSQL")),
+            ("al-pg-3", "sk-pg-indexing", "Postgres DB", normalize_skill_text("Postgres DB")),
+            # Docker aliases
+            ("al-dk-1", "sk-docker-multistage", "Docker", normalize_skill_text("Docker")),
+            ("al-dk-2", "sk-docker-multistage", "Docker Containers", normalize_skill_text("Docker Containers")),
+            # AYUSH aliases
+            ("al-np-1", "sk-pulse-rhythm", "Pulse Reading", normalize_skill_text("Pulse Reading")),
+            ("al-np-2", "sk-pulse-rhythm", "Pulse Diagnostics", normalize_skill_text("Pulse Diagnostics")),
+            ("al-np-3", "sk-pulse-rhythm", "Nadi Parikshan", normalize_skill_text("Nadi Parikshan")),
+            ("al-np-4", "sk-pulse-rhythm", "Nadi Pariksha", normalize_skill_text("Nadi Pariksha")),
+            ("al-di-1", "sk-dosha-imbalance", "Tridosha Assessment", normalize_skill_text("Tridosha Assessment")),
+            ("al-di-2", "sk-dosha-imbalance", "Dosha Imbalance", normalize_skill_text("Dosha Imbalance")),
+            ("al-dg-1", "sk-rasa-panchaka", "Ayurvedic Pharmacology", normalize_skill_text("Ayurvedic Pharmacology")),
+            ("al-dg-2", "sk-rasa-panchaka", "Dravyaguna", normalize_skill_text("Dravyaguna")),
+            ("al-pk-1", "sk-snehana-admin", "Panchakarma Snehana", normalize_skill_text("Panchakarma Snehana")),
+            ("al-pk-2", "sk-swedana-thermal", "Panchakarma Swedana", normalize_skill_text("Panchakarma Swedana")),
+            ("al-yo-1", "sk-pranayama-bio", "Pranayama Breathwork", normalize_skill_text("Pranayama Breathwork")),
+            ("al-yo-2", "sk-asana-kinesiology", "Therapeutic Yoga", normalize_skill_text("Therapeutic Yoga"))
+        ]
+        for a_id, sk_id, a_name, norm_a in aliases_data:
+            a = await session.get(SkillAlias, a_id)
+            if not a:
+                session.add(SkillAlias(
+                    id=a_id,
+                    skill_id=sk_id,
+                    alias_name=a_name,
+                    normalized_alias=norm_a,
+                    source_type="SYSTEM",
+                    status="ACTIVE"
+                ))
+            else:
+                a.skill_id = sk_id
+                a.alias_name = a_name
+                a.normalized_alias = norm_a
+                a.source_type = "SYSTEM"
+                a.status = "ACTIVE"
+        await session.flush()
+
+        # ----------------------------------------------------------------------
         # 6. Seed Canonical Roles Catalog & Role Competency Requirements
         # ----------------------------------------------------------------------
         print("8. Seeding canonical roles catalog & role requirements...")

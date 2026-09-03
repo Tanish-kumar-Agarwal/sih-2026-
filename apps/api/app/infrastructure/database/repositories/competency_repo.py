@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, and_
 from sqlalchemy.orm import selectinload
 from app.infrastructure.database.models import (
-    Domain, Category, Competency, Skill, SkillCompetency,
+    Domain, Category, Competency, Skill, SkillAlias, SkillCompetency,
     RolesCatalog, RoleCompetencyRequirement, CompetencyRelationship
 )
 from .base import BaseRepository
@@ -219,3 +219,95 @@ class CompetencyRepository(BaseRepository[Competency]):
         )
         res = await self.db.execute(stmt)
         return res.scalars().first()
+
+    # --------------------------------------------------------------------------
+    # Normalization, Aliases & M:N Mapping Queries
+    # --------------------------------------------------------------------------
+    async def find_skills_by_identifiers_or_keys(
+        self,
+        ids: List[str],
+        slugs: List[str],
+        names: List[str]
+    ) -> List[Skill]:
+        """Fetch active canonical skills matching any of the given IDs, slugs, or normalized names in a single query."""
+        clauses = []
+        if ids:
+            clauses.append(Skill.id.in_(ids))
+        if slugs:
+            clauses.append(Skill.slug.in_(slugs))
+        if names:
+            clauses.append(func.lower(Skill.name).in_([n.lower() for n in names]))
+
+        if not clauses:
+            return []
+
+        stmt = (
+            select(Skill)
+            .where(and_(Skill.status == "ACTIVE", or_(*clauses)))
+            .options(
+                selectinload(Skill.domain_rel),
+                selectinload(Skill.competencies)
+            )
+        )
+        res = await self.db.execute(stmt)
+        return list(res.scalars().all())
+
+    async def find_aliases_by_keys(
+        self,
+        raw_aliases: List[str],
+        normalized_aliases: List[str]
+    ) -> List[SkillAlias]:
+        """Fetch active aliases matching raw or normalized aliases in a single query."""
+        clauses = []
+        if raw_aliases:
+            clauses.append(func.lower(SkillAlias.alias_name).in_([a.lower() for a in raw_aliases]))
+        if normalized_aliases:
+            clauses.append(SkillAlias.normalized_alias.in_(normalized_aliases))
+
+        if not clauses:
+            return []
+
+        stmt = (
+            select(SkillAlias)
+            .where(and_(SkillAlias.status == "ACTIVE", or_(*clauses)))
+            .options(
+                selectinload(SkillAlias.skill).selectinload(Skill.domain_rel)
+            )
+        )
+        res = await self.db.execute(stmt)
+        return list(res.scalars().all())
+
+    async def get_skill_with_competencies(self, identifier: str) -> Optional[Skill]:
+        """Fetch single skill with mapped competencies and aliases."""
+        stmt = (
+            select(Skill)
+            .where(
+                or_(
+                    Skill.id == identifier,
+                    Skill.slug == identifier.lower()
+                )
+            )
+            .options(
+                selectinload(Skill.domain_rel),
+                selectinload(Skill.competency_mappings).selectinload(SkillCompetency.competency),
+                selectinload(Skill.aliases)
+            )
+        )
+        res = await self.db.execute(stmt)
+        return res.scalars().first()
+
+    async def get_skills_competency_mappings_batch(self, skill_ids: List[str]) -> List[SkillCompetency]:
+        """Batch fetch skill-to-competency mappings with competencies eagerly loaded."""
+        if not skill_ids:
+            return []
+        stmt = (
+            select(SkillCompetency)
+            .where(SkillCompetency.skill_id.in_(skill_ids))
+            .options(
+                selectinload(SkillCompetency.competency),
+                selectinload(SkillCompetency.skill)
+            )
+        )
+        res = await self.db.execute(stmt)
+        return list(res.scalars().all())
+

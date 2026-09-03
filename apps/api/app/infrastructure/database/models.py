@@ -272,8 +272,17 @@ class SkillAlias(Base):
     id = Column(String(36), primary_key=True, default=gen_uuid)
     skill_id = Column(String(36), ForeignKey("skills.id", ondelete="CASCADE"), nullable=False, index=True)
     alias_name = Column(String(150), nullable=False, index=True)
+    normalized_alias = Column(String(150), nullable=False, index=True)
+    source_type = Column(String(50), default="SYSTEM", nullable=False)
+    status = Column(String(20), default="ACTIVE", nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     skill = relationship("Skill", back_populates="aliases")
+
+    __table_args__ = (
+        UniqueConstraint('normalized_alias', name='uq_skill_alias_normalized'),
+    )
 
 class SkillCompetency(Base):
     __tablename__ = "skill_competencies"

@@ -98,3 +98,81 @@ class RoleCatalogDTO(BaseModel):
     requirements: List[RoleRequirementDTO] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+# ------------------------------------------------------------------------------
+# Normalization, Alias Resolution & Proficiency Aggregation Contracts
+# ------------------------------------------------------------------------------
+
+class SkillResolutionRequest(BaseModel):
+    skill: str
+
+class SkillResolutionBatchRequest(BaseModel):
+    skills: List[str]
+
+class ResolvedSkillDTO(BaseModel):
+    id: str
+    name: str
+    slug: str
+    domain_id: Optional[str] = None
+    domain_code: Optional[str] = None
+    status: str = "ACTIVE"
+
+class SkillResolutionCandidateDTO(BaseModel):
+    id: str
+    name: str
+    slug: str
+
+class SkillResolutionItemDTO(BaseModel):
+    input: str
+    normalized_input: str
+    status: str  # RESOLVED, UNRESOLVED, AMBIGUOUS
+    match_type: str  # CANONICAL_EXACT, CANONICAL_SLUG, CANONICAL_NORMALIZED, ALIAS_EXACT, ALIAS_NORMALIZED, UNRESOLVED
+    skill: Optional[ResolvedSkillDTO] = None
+    candidates: Optional[List[SkillResolutionCandidateDTO]] = None
+
+class SkillResolutionBatchResponseDTO(BaseModel):
+    items: List[SkillResolutionItemDTO]
+    total: int
+    resolved_count: int
+    unresolved_count: int
+    ambiguous_count: int
+
+class SkillProficiencyInputDTO(BaseModel):
+    skill: str
+    score: Optional[float] = None
+    proficiency_level: Optional[str] = None
+    source: Optional[str] = "SELF_REPORTED"
+
+class CompetencyAggregationRequestDTO(BaseModel):
+    skills: List[SkillProficiencyInputDTO]
+
+class ContributingSkillDTO(BaseModel):
+    skill_id: str
+    skill_name: str
+    skill_slug: str
+    score: float
+    level: str
+    relevance_weight: float
+    is_primary: bool
+    source: str
+
+class AggregatedCompetencyDTO(BaseModel):
+    competency_id: str
+    competency_name: str
+    competency_code: str
+    competency_slug: Optional[str] = None
+    category: Optional[str] = None
+    difficulty_level: str
+    aggregated_score: float
+    proficiency_level: str
+    proficiency_numeric: int
+    primary_skills_covered: int
+    total_skills_contributing: int
+    dominant_source: str
+    contributing_skills: List[ContributingSkillDTO]
+
+class CompetencyAggregationResponseDTO(BaseModel):
+    competencies: List[AggregatedCompetencyDTO]
+    unresolved_skills: List[str]
+    total_skills_evaluated: int
+

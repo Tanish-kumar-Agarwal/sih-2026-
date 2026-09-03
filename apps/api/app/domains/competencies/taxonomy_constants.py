@@ -59,3 +59,31 @@ class TaxonomySourceType(str, Enum):
     AYUSH_MINISTRY = "AYUSH_MINISTRY"
     INDUSTRY_STANDARD = "INDUSTRY_STANDARD"
     MANUAL_CURATED = "MANUAL_CURATED"
+
+class ResolutionStatus(str, Enum):
+    RESOLVED = "RESOLVED"
+    UNRESOLVED = "UNRESOLVED"
+    AMBIGUOUS = "AMBIGUOUS"
+
+class MatchType(str, Enum):
+    CANONICAL_EXACT = "CANONICAL_EXACT"
+    CANONICAL_SLUG = "CANONICAL_SLUG"
+    CANONICAL_NORMALIZED = "CANONICAL_NORMALIZED"
+    ALIAS_EXACT = "ALIAS_EXACT"
+    ALIAS_NORMALIZED = "ALIAS_NORMALIZED"
+    UNRESOLVED = "UNRESOLVED"
+
+class ProficiencySource(str, Enum):
+    VERIFIED_EVIDENCE = "VERIFIED_EVIDENCE"
+    ASSESSMENT = "ASSESSMENT"
+    SYSTEM = "SYSTEM"
+    SELF_REPORTED = "SELF_REPORTED"
+
+# Signal precedence hierarchy: higher number = higher trust precedence
+SOURCE_PRECEDENCE: Dict[ProficiencySource, int] = {
+    ProficiencySource.VERIFIED_EVIDENCE: 40,
+    ProficiencySource.ASSESSMENT: 30,
+    ProficiencySource.SYSTEM: 20,
+    ProficiencySource.SELF_REPORTED: 10,
+}
+
