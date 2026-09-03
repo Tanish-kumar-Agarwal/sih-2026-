@@ -1,8 +1,8 @@
 {
-  "/institution/students/page": "app/institution/students/page.js",
-  "/student/profile/page": "app/student/profile/page.js",
-  "/institution/readiness/page": "app/institution/readiness/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/institution/students/[id]/page": "app/institution/students/[id]/page.js",
-  "/student/assessments/page": "app/student/assessments/page.js",
-  "/student/competency/page": "app/student/competency/page.js"
+  "/institution/readiness/page": "app/institution/readiness/page.js",
+  "/student/profile/page": "app/student/profile/page.js",
+  "/student/competency/page": "app/student/competency/page.js",
+  "/student/assessments/page": "app/student/assessments/page.js"
 }

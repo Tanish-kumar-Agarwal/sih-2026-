@@ -1,0 +1,1093 @@
+{
+  "domains": {
+    "row_count": 2,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "code",
+        "data_type": "character varying",
+        "character_maximum_length": 50,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "name",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "character_maximum_length": 20,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [],
+    "uniques": [],
+    "checks": [
+      {
+        "constraint_name": "2200_25080_3_not_null",
+        "check_clause": "name IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25080_2_not_null",
+        "check_clause": "code IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25080_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25080_5_not_null",
+        "check_clause": "status IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "domains_pkey",
+        "indexdef": "CREATE UNIQUE INDEX domains_pkey ON public.domains USING btree (id)"
+      },
+      {
+        "indexname": "ix_domains_code",
+        "indexdef": "CREATE UNIQUE INDEX ix_domains_code ON public.domains USING btree (code)"
+      }
+    ]
+  },
+  "categories": {
+    "row_count": 6,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "domain_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "code",
+        "data_type": "character varying",
+        "character_maximum_length": 50,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "name",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "slug",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "character_maximum_length": 20,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "categories_domain_id_fkey",
+        "column_name": "domain_id",
+        "foreign_table_name": "domains",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      }
+    ],
+    "uniques": [],
+    "checks": [
+      {
+        "constraint_name": "2200_25088_4_not_null",
+        "check_clause": "name IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25088_3_not_null",
+        "check_clause": "code IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25088_2_not_null",
+        "check_clause": "domain_id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25088_7_not_null",
+        "check_clause": "status IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25088_5_not_null",
+        "check_clause": "slug IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25088_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "categories_pkey",
+        "indexdef": "CREATE UNIQUE INDEX categories_pkey ON public.categories USING btree (id)"
+      },
+      {
+        "indexname": "ix_categories_code",
+        "indexdef": "CREATE UNIQUE INDEX ix_categories_code ON public.categories USING btree (code)"
+      },
+      {
+        "indexname": "ix_categories_domain_id",
+        "indexdef": "CREATE INDEX ix_categories_domain_id ON public.categories USING btree (domain_id)"
+      },
+      {
+        "indexname": "ix_categories_slug",
+        "indexdef": "CREATE UNIQUE INDEX ix_categories_slug ON public.categories USING btree (slug)"
+      }
+    ]
+  },
+  "competencies": {
+    "row_count": 11,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "name",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "code",
+        "data_type": "character varying",
+        "character_maximum_length": 50,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "category",
+        "data_type": "character varying",
+        "character_maximum_length": 100,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "difficulty_level",
+        "data_type": "character varying",
+        "character_maximum_length": 30,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "embedding_vector",
+        "data_type": "json",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "domain_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "category_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "slug",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "character_maximum_length": 20,
+        "is_nullable": "NO",
+        "column_default": "'ACTIVE'::character varying"
+      },
+      {
+        "column_name": "source_type",
+        "data_type": "character varying",
+        "character_maximum_length": 50,
+        "is_nullable": "NO",
+        "column_default": "'SYSTEM'::character varying"
+      },
+      {
+        "column_name": "source_reference",
+        "data_type": "character varying",
+        "character_maximum_length": 255,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "competencies_domain_id_fkey",
+        "column_name": "domain_id",
+        "foreign_table_name": "domains",
+        "foreign_column_name": "id",
+        "delete_rule": "SET NULL"
+      },
+      {
+        "constraint_name": "competencies_category_id_fkey",
+        "column_name": "category_id",
+        "foreign_table_name": "categories",
+        "foreign_column_name": "id",
+        "delete_rule": "SET NULL"
+      }
+    ],
+    "uniques": [
+      {
+        "constraint_name": "competencies_code_key",
+        "column_name": "code"
+      },
+      {
+        "constraint_name": "competencies_name_key",
+        "column_name": "name"
+      }
+    ],
+    "checks": [
+      {
+        "constraint_name": "2200_24648_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24648_3_not_null",
+        "check_clause": "code IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24648_2_not_null",
+        "check_clause": "name IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24648_12_not_null",
+        "check_clause": "status IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24648_13_not_null",
+        "check_clause": "source_type IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "competencies_pkey",
+        "indexdef": "CREATE UNIQUE INDEX competencies_pkey ON public.competencies USING btree (id)"
+      },
+      {
+        "indexname": "competencies_code_key",
+        "indexdef": "CREATE UNIQUE INDEX competencies_code_key ON public.competencies USING btree (code)"
+      },
+      {
+        "indexname": "competencies_name_key",
+        "indexdef": "CREATE UNIQUE INDEX competencies_name_key ON public.competencies USING btree (name)"
+      },
+      {
+        "indexname": "ix_competencies_category_id",
+        "indexdef": "CREATE INDEX ix_competencies_category_id ON public.competencies USING btree (category_id)"
+      },
+      {
+        "indexname": "ix_competencies_domain_id",
+        "indexdef": "CREATE INDEX ix_competencies_domain_id ON public.competencies USING btree (domain_id)"
+      },
+      {
+        "indexname": "ix_competencies_slug",
+        "indexdef": "CREATE UNIQUE INDEX ix_competencies_slug ON public.competencies USING btree (slug)"
+      }
+    ]
+  },
+  "skills": {
+    "row_count": 22,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "competency_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "name",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "slug",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "domain_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "character_maximum_length": 20,
+        "is_nullable": "NO",
+        "column_default": "'ACTIVE'::character varying"
+      },
+      {
+        "column_name": "source_type",
+        "data_type": "character varying",
+        "character_maximum_length": 50,
+        "is_nullable": "NO",
+        "column_default": "'SYSTEM'::character varying"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "skills_domain_id_fkey",
+        "column_name": "domain_id",
+        "foreign_table_name": "domains",
+        "foreign_column_name": "id",
+        "delete_rule": "SET NULL"
+      },
+      {
+        "constraint_name": "skills_competency_id_fkey",
+        "column_name": "competency_id",
+        "foreign_table_name": "competencies",
+        "foreign_column_name": "id",
+        "delete_rule": "SET NULL"
+      }
+    ],
+    "uniques": [],
+    "checks": [
+      {
+        "constraint_name": "2200_24763_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24763_4_not_null",
+        "check_clause": "slug IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24763_9_not_null",
+        "check_clause": "source_type IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24763_3_not_null",
+        "check_clause": "name IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24763_8_not_null",
+        "check_clause": "status IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "skills_pkey",
+        "indexdef": "CREATE UNIQUE INDEX skills_pkey ON public.skills USING btree (id)"
+      },
+      {
+        "indexname": "ix_skills_competency_id",
+        "indexdef": "CREATE INDEX ix_skills_competency_id ON public.skills USING btree (competency_id)"
+      },
+      {
+        "indexname": "ix_skills_domain_id",
+        "indexdef": "CREATE INDEX ix_skills_domain_id ON public.skills USING btree (domain_id)"
+      },
+      {
+        "indexname": "ix_skills_slug",
+        "indexdef": "CREATE UNIQUE INDEX ix_skills_slug ON public.skills USING btree (slug)"
+      }
+    ]
+  },
+  "skill_competencies": {
+    "row_count": 18,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 64,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "skill_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "competency_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "relevance_weight",
+        "data_type": "double precision",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "is_primary",
+        "data_type": "boolean",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "skill_competencies_competency_id_fkey",
+        "column_name": "competency_id",
+        "foreign_table_name": "competencies",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      },
+      {
+        "constraint_name": "skill_competencies_skill_id_fkey",
+        "column_name": "skill_id",
+        "foreign_table_name": "skills",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      }
+    ],
+    "uniques": [
+      {
+        "constraint_name": "uq_skill_competency",
+        "column_name": "skill_id"
+      },
+      {
+        "constraint_name": "uq_skill_competency",
+        "column_name": "competency_id"
+      }
+    ],
+    "checks": [
+      {
+        "constraint_name": "2200_25124_3_not_null",
+        "check_clause": "competency_id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25124_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25124_2_not_null",
+        "check_clause": "skill_id IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "uq_skill_competency",
+        "indexdef": "CREATE UNIQUE INDEX uq_skill_competency ON public.skill_competencies USING btree (skill_id, competency_id)"
+      },
+      {
+        "indexname": "ix_skill_competencies_competency_id",
+        "indexdef": "CREATE INDEX ix_skill_competencies_competency_id ON public.skill_competencies USING btree (competency_id)"
+      },
+      {
+        "indexname": "ix_skill_competencies_skill_id",
+        "indexdef": "CREATE INDEX ix_skill_competencies_skill_id ON public.skill_competencies USING btree (skill_id)"
+      },
+      {
+        "indexname": "skill_competencies_pkey",
+        "indexdef": "CREATE UNIQUE INDEX skill_competencies_pkey ON public.skill_competencies USING btree (id)"
+      }
+    ]
+  },
+  "roles_catalog": {
+    "row_count": 5,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "title",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "code",
+        "data_type": "character varying",
+        "character_maximum_length": 50,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "domain",
+        "data_type": "character varying",
+        "character_maximum_length": 100,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "description",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "domain_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "slug",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "character_maximum_length": 20,
+        "is_nullable": "NO",
+        "column_default": "'ACTIVE'::character varying"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "roles_catalog_domain_id_fkey",
+        "column_name": "domain_id",
+        "foreign_table_name": "domains",
+        "foreign_column_name": "id",
+        "delete_rule": "SET NULL"
+      }
+    ],
+    "uniques": [
+      {
+        "constraint_name": "roles_catalog_code_key",
+        "column_name": "code"
+      },
+      {
+        "constraint_name": "roles_catalog_title_key",
+        "column_name": "title"
+      }
+    ],
+    "checks": [
+      {
+        "constraint_name": "2200_24681_4_not_null",
+        "check_clause": "domain IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24681_2_not_null",
+        "check_clause": "title IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24681_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24681_3_not_null",
+        "check_clause": "code IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24681_9_not_null",
+        "check_clause": "status IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "roles_catalog_pkey",
+        "indexdef": "CREATE UNIQUE INDEX roles_catalog_pkey ON public.roles_catalog USING btree (id)"
+      },
+      {
+        "indexname": "roles_catalog_code_key",
+        "indexdef": "CREATE UNIQUE INDEX roles_catalog_code_key ON public.roles_catalog USING btree (code)"
+      },
+      {
+        "indexname": "roles_catalog_title_key",
+        "indexdef": "CREATE UNIQUE INDEX roles_catalog_title_key ON public.roles_catalog USING btree (title)"
+      },
+      {
+        "indexname": "ix_roles_catalog_domain_id",
+        "indexdef": "CREATE INDEX ix_roles_catalog_domain_id ON public.roles_catalog USING btree (domain_id)"
+      },
+      {
+        "indexname": "ix_roles_catalog_slug",
+        "indexdef": "CREATE UNIQUE INDEX ix_roles_catalog_slug ON public.roles_catalog USING btree (slug)"
+      }
+    ]
+  },
+  "role_competency_requirements": {
+    "row_count": 13,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 64,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "role_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "competency_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "required_proficiency",
+        "data_type": "character varying",
+        "character_maximum_length": 30,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "requirement_type",
+        "data_type": "character varying",
+        "character_maximum_length": 30,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "weight",
+        "data_type": "double precision",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "notes",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "role_competency_requirements_competency_id_fkey",
+        "column_name": "competency_id",
+        "foreign_table_name": "competencies",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      },
+      {
+        "constraint_name": "role_competency_requirements_role_id_fkey",
+        "column_name": "role_id",
+        "foreign_table_name": "roles_catalog",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      }
+    ],
+    "uniques": [
+      {
+        "constraint_name": "uq_role_competency_requirement",
+        "column_name": "role_id"
+      },
+      {
+        "constraint_name": "uq_role_competency_requirement",
+        "column_name": "competency_id"
+      }
+    ],
+    "checks": [
+      {
+        "constraint_name": "2200_25103_5_not_null",
+        "check_clause": "requirement_type IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25103_2_not_null",
+        "check_clause": "role_id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25103_3_not_null",
+        "check_clause": "competency_id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25103_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_25103_4_not_null",
+        "check_clause": "required_proficiency IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "uq_role_competency_requirement",
+        "indexdef": "CREATE UNIQUE INDEX uq_role_competency_requirement ON public.role_competency_requirements USING btree (role_id, competency_id)"
+      },
+      {
+        "indexname": "ix_role_competency_requirements_competency_id",
+        "indexdef": "CREATE INDEX ix_role_competency_requirements_competency_id ON public.role_competency_requirements USING btree (competency_id)"
+      },
+      {
+        "indexname": "ix_role_competency_requirements_role_id",
+        "indexdef": "CREATE INDEX ix_role_competency_requirements_role_id ON public.role_competency_requirements USING btree (role_id)"
+      },
+      {
+        "indexname": "role_competency_requirements_pkey",
+        "indexdef": "CREATE UNIQUE INDEX role_competency_requirements_pkey ON public.role_competency_requirements USING btree (id)"
+      }
+    ]
+  },
+  "competency_relationships": {
+    "row_count": 7,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 64,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "source_competency_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "target_competency_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "relationship_type",
+        "data_type": "character varying",
+        "character_maximum_length": 50,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "weight",
+        "data_type": "double precision",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "character varying",
+        "character_maximum_length": 20,
+        "is_nullable": "NO",
+        "column_default": "'ACTIVE'::character varying"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "competency_relationships_source_competency_id_fkey",
+        "column_name": "source_competency_id",
+        "foreign_table_name": "competencies",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      },
+      {
+        "constraint_name": "competency_relationships_target_competency_id_fkey",
+        "column_name": "target_competency_id",
+        "foreign_table_name": "competencies",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      }
+    ],
+    "uniques": [
+      {
+        "constraint_name": "uq_competency_relationship",
+        "column_name": "source_competency_id"
+      },
+      {
+        "constraint_name": "uq_competency_relationship",
+        "column_name": "target_competency_id"
+      },
+      {
+        "constraint_name": "uq_competency_relationship",
+        "column_name": "relationship_type"
+      }
+    ],
+    "checks": [
+      {
+        "constraint_name": "2200_24705_6_not_null",
+        "check_clause": "status IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24705_3_not_null",
+        "check_clause": "target_competency_id IS NOT NULL"
+      },
+      {
+        "constraint_name": "chk_no_self_competency_relationship",
+        "check_clause": "(((source_competency_id)::text <> (target_competency_id)::text))"
+      },
+      {
+        "constraint_name": "2200_24705_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24705_4_not_null",
+        "check_clause": "relationship_type IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24705_2_not_null",
+        "check_clause": "source_competency_id IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "uq_competency_relationship",
+        "indexdef": "CREATE UNIQUE INDEX uq_competency_relationship ON public.competency_relationships USING btree (source_competency_id, target_competency_id, relationship_type)"
+      },
+      {
+        "indexname": "ix_competency_relationships_source_competency_id",
+        "indexdef": "CREATE INDEX ix_competency_relationships_source_competency_id ON public.competency_relationships USING btree (source_competency_id)"
+      },
+      {
+        "indexname": "ix_competency_relationships_target_competency_id",
+        "indexdef": "CREATE INDEX ix_competency_relationships_target_competency_id ON public.competency_relationships USING btree (target_competency_id)"
+      },
+      {
+        "indexname": "competency_relationships_pkey",
+        "indexdef": "CREATE UNIQUE INDEX competency_relationships_pkey ON public.competency_relationships USING btree (id)"
+      }
+    ]
+  },
+  "skill_aliases": {
+    "row_count": 0,
+    "columns": [
+      {
+        "column_name": "id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "skill_id",
+        "data_type": "character varying",
+        "character_maximum_length": 36,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "alias_name",
+        "data_type": "character varying",
+        "character_maximum_length": 150,
+        "is_nullable": "NO",
+        "column_default": null
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constraint_name": "skill_aliases_skill_id_fkey",
+        "column_name": "skill_id",
+        "foreign_table_name": "skills",
+        "foreign_column_name": "id",
+        "delete_rule": "CASCADE"
+      }
+    ],
+    "uniques": [],
+    "checks": [
+      {
+        "constraint_name": "2200_24852_3_not_null",
+        "check_clause": "alias_name IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24852_2_not_null",
+        "check_clause": "skill_id IS NOT NULL"
+      },
+      {
+        "constraint_name": "2200_24852_1_not_null",
+        "check_clause": "id IS NOT NULL"
+      }
+    ],
+    "indexes": [
+      {
+        "indexname": "skill_aliases_pkey",
+        "indexdef": "CREATE UNIQUE INDEX skill_aliases_pkey ON public.skill_aliases USING btree (id)"
+      },
+      {
+        "indexname": "ix_skill_aliases_alias_name",
+        "indexdef": "CREATE INDEX ix_skill_aliases_alias_name ON public.skill_aliases USING btree (alias_name)"
+      },
+      {
+        "indexname": "ix_skill_aliases_skill_id",
+        "indexdef": "CREATE INDEX ix_skill_aliases_skill_id ON public.skill_aliases USING btree (skill_id)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "duplicate_skill_slug": {
+    "passed": true,
+    "error_class": "UniqueViolationError",
+    "msg": "duplicate key value violates unique constraint \"ix_skills_slug\"\nDETAIL:  Key (slug)=(python-oop) already exists."
+  },
+  "duplicate_competency_slug": {
+    "passed": true,
+    "error_class": "UniqueViolationError",
+    "msg": "duplicate key value violates unique constraint \"ix_competencies_slug\"\nDETAIL:  Key (slug)=(python-engineering) already exists."
+  },
+  "duplicate_skill_competency_mapping": {
+    "passed": true,
+    "error_class": "UniqueViolationError",
+    "msg": "duplicate key value violates unique constraint \"uq_skill_competency\"\nDETAIL:  Key (skill_id, competency_id)=(sk-py-oop, comp-python) already exists."
+  },
+  "invalid_competency_fk": {
+    "passed": true,
+    "error_class": "ForeignKeyViolationError",
+    "msg": "insert or update on table \"skill_competencies\" violates foreign key constraint \"skill_competencies_competency_id_fkey\"\nDETAIL:  Key (competency_id)=(comp-nonexistent-123) is not present in table \"competencies\"."
+  },
+  "self_competency_relationship": {
+    "passed": true,
+    "error_class": "CheckViolationError",
+    "msg": "new row for relation \"competency_relationships\" violates check constraint \"chk_no_self_competency_relationship\"\nDETAIL:  Failing row contains (crel-self-test, comp-python, comp-python, PREREQUISITE_FOR, 1, ACTIVE, null)."
+  },
+  "duplicate_role_competency_requirement": {
+    "passed": true,
+    "error_class": "UniqueViolationError",
+    "msg": "duplicate key value violates unique constraint \"uq_role_competency_requirement\"\nDETAIL:  Key (role_id, competency_id)=(role-backend-dev, comp-python) already exists."
+  },
+  "duplicate_domain_code": {
+    "passed": true,
+    "error_class": "UniqueViolationError",
+    "msg": "duplicate key value violates unique constraint \"ix_domains_code\"\nDETAIL:  Key (code)=(GENERAL) already exists."
+  }
+}

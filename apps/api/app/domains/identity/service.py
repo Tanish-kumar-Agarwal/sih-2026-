@@ -66,29 +66,6 @@ class IdentityService:
         result = await db.execute(select(User).where(User.email == req.email))
         user = result.scalars().first()
         
-        # Predefined demo accounts support for seamless demo evaluation
-        if not user and req.email.endswith("@skillsetu.in"):
-            role_type = req.email.split("@")[0]
-            if role_type in ["student", "industry", "institution", "faculty", "admin"]:
-                first_name = role_type.capitalize()
-                return {
-                    "access_token": create_access_token({
-                        "sub": f"demo-{role_type}",
-                        "email": req.email,
-                        "role": role_type,
-                        "first_name": first_name,
-                        "last_name": "User"
-                    }),
-                    "token_type": "bearer",
-                    "user": {
-                        "id": f"demo-{role_type}",
-                        "email": req.email,
-                        "role": role_type,
-                        "first_name": first_name,
-                        "last_name": "Demo"
-                    }
-                }
-
         if not user or not verify_password(req.password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

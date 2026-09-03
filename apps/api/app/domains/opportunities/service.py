@@ -1,107 +1,94 @@
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from datetime import datetime, timezone
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from app.infrastructure.database.models import Opportunity, Company
-
-class OpportunityDTO(BaseModel):
-    id: str
-    company_name: str
-    company_logo: Optional[str] = None
-    title: str
-    type: str = "INTERNSHIP"
-    stipend_or_salary: str
-    location: str
-    work_mode: str = "REMOTE"
-    openings: int = 2
-    status: str = "ACTIVE"
-    deadline: str
-    description: str
-    required_competencies: List[Dict[str, Any]]
+from app.infrastructure.database.repositories.opportunity_repo import OpportunityRepository
 
 class OpportunityService:
-    def __init__(self):
-        self._mock_opportunities = [
-            {
-                "id": "opp-sih-001",
-                "company_name": "NextGen AI Labs",
-                "company_logo": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=60",
-                "title": "Full Stack AI Platform Engineer",
-                "type": "INTERNSHIP",
-                "stipend_or_salary": "₹45,000 / month",
-                "location": "Bengaluru (Hybrid)",
-                "work_mode": "HYBRID",
-                "openings": 3,
-                "status": "ACTIVE",
-                "deadline": "2026-10-15",
-                "description": "We are seeking a talented full-stack engineer with expertise in FastAPI, React/Next.js, and knowledge graph representations to build real-time AI portals.",
-                "required_competencies": [
-                    {"name": "FastAPI", "importance": "MANDATORY", "weight": 1.0},
-                    {"name": "React & Next.js", "importance": "MANDATORY", "weight": 0.95},
-                    {"name": "Neo4j Graph DB", "importance": "PREFERRED", "weight": 0.8},
-                    {"name": "Docker & DevOps", "importance": "BONUS", "weight": 0.6}
-                ]
-            },
-            {
-                "id": "opp-sih-002",
-                "company_name": "Cognitive Cloud",
-                "company_logo": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=100&auto=format&fit=crop&q=60",
-                "title": "Knowledge Graph & LLM Research Intern",
-                "type": "INTERNSHIP",
-                "stipend_or_salary": "₹55,000 / month",
-                "location": "Remote",
-                "work_mode": "REMOTE",
-                "openings": 2,
-                "status": "ACTIVE",
-                "deadline": "2026-10-30",
-                "description": "Build multi-hop graph retrieval augmented generation (GraphRAG) pipelines combining Neo4j and generative AI agents.",
-                "required_competencies": [
-                    {"name": "Python", "importance": "MANDATORY", "weight": 1.0},
-                    {"name": "Neo4j Graph DB", "importance": "MANDATORY", "weight": 0.95},
-                    {"name": "Applied ML & Neural Architectures", "importance": "MANDATORY", "weight": 0.90}
-                ]
-            },
-            {
-                "id": "opp-sih-003",
-                "company_name": "CyberDefense Networks",
-                "company_logo": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=100&auto=format&fit=crop&q=60",
-                "title": "DevOps & Cloud Security Specialist",
-                "type": "FULL_TIME",
-                "stipend_or_salary": "₹14,00,000 / year",
-                "location": "Hyderabad (Onsite)",
-                "work_mode": "ONSITE",
-                "openings": 1,
-                "status": "ACTIVE",
-                "deadline": "2026-11-05",
-                "description": "Orchestrate zero-trust Kubernetes architectures and automated security scanning pipelines.",
-                "required_competencies": [
-                    {"name": "Docker & DevOps", "importance": "MANDATORY", "weight": 1.0},
-                    {"name": "Python", "importance": "PREFERRED", "weight": 0.8},
-                    {"name": "Kubernetes", "importance": "MANDATORY", "weight": 0.95}
-                ]
-            }
-        ]
+    async def list_opportunities(self, db: AsyncSession, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+        repo = OpportunityRepository(db)
+        opps = await repo.list_active_opportunities(limit=limit, offset=offset)
+        
+        results = []
+        for opp in opps:
+            company = opp.company
+            results.append({
+                "id": opp.id,
+                "company_id": opp.company_id,
+                "company_name": company.name if company else "Enterprise Partner",
+                "company_logo": company.logo_url if company else None,
+                "title": opp.title,
+                "type": opp.type,
+                "stipend_or_salary": opp.stipend_or_salary or "Competitive",
+                "location": opp.location or "Remote",
+                "work_mode": opp.work_mode,
+                "openings": opp.openings,
+                "status": opp.status,
+                "deadline": opp.deadline.isoformat() if opp.deadline else None,
+                "description": opp.description or "",
+                "required_competencies": opp.required_competencies or [],
+                "created_at": opp.created_at.isoformat() if opp.created_at else None
+            })
+        return results
 
-    async def list_opportunities(self, db: AsyncSession) -> List[dict]:
-        return self._mock_opportunities
-
-    async def create_opportunity(self, db: AsyncSession, data: dict) -> dict:
-        new_opp = {
-            "id": f"opp-custom-{len(self._mock_opportunities) + 1}",
-            "company_name": data.get("company_name", "Enterprise Partner"),
-            "company_logo": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=100&auto=format&fit=crop&q=60",
-            "title": data.get("title"),
-            "type": data.get("type", "INTERNSHIP"),
-            "stipend_or_salary": data.get("stipend_or_salary", "Competitive"),
-            "location": data.get("location", "Remote"),
-            "work_mode": data.get("work_mode", "REMOTE"),
-            "openings": data.get("openings", 1),
-            "status": "ACTIVE",
-            "deadline": data.get("deadline", "2026-12-31"),
-            "description": data.get("description", ""),
-            "required_competencies": data.get("required_competencies", [])
+    async def get_opportunity(self, db: AsyncSession, opportunity_id: str) -> Dict[str, Any]:
+        repo = OpportunityRepository(db)
+        opp = await repo.get_with_company(opportunity_id)
+        if not opp:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Opportunity '{opportunity_id}' not found"
+            )
+        company = opp.company
+        return {
+            "id": opp.id,
+            "company_id": opp.company_id,
+            "company_name": company.name if company else "Enterprise Partner",
+            "company_logo": company.logo_url if company else None,
+            "title": opp.title,
+            "type": opp.type,
+            "stipend_or_salary": opp.stipend_or_salary,
+            "location": opp.location,
+            "work_mode": opp.work_mode,
+            "openings": opp.openings,
+            "status": opp.status,
+            "deadline": opp.deadline.isoformat() if opp.deadline else None,
+            "description": opp.description,
+            "required_competencies": opp.required_competencies or []
         }
-        self._mock_opportunities.insert(0, new_opp)
-        return new_opp
+
+    async def create_opportunity(self, db: AsyncSession, data: dict) -> Dict[str, Any]:
+        company_id = data.get("company_id")
+        if not company_id:
+            # Check or create default partner company
+            company = Company(name=data.get("company_name", "Enterprise Partner"))
+            db.add(company)
+            await db.flush()
+            company_id = company.id
+
+        opp = Opportunity(
+            company_id=company_id,
+            title=data["title"],
+            type=data.get("type", "INTERNSHIP"),
+            stipend_or_salary=data.get("stipend_or_salary", "Competitive"),
+            location=data.get("location", "Remote"),
+            work_mode=data.get("work_mode", "REMOTE"),
+            openings=data.get("openings", 1),
+            status="ACTIVE",
+            description=data.get("description", ""),
+            required_competencies=data.get("required_competencies", [])
+        )
+        db.add(opp)
+        await db.commit()
+        await db.refresh(opp)
+
+        return {
+            "id": opp.id,
+            "company_id": opp.company_id,
+            "title": opp.title,
+            "status": opp.status,
+            "created_at": opp.created_at.isoformat() if opp.created_at else None
+        }
 
 opportunity_service = OpportunityService()

@@ -1,72 +1,80 @@
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.infrastructure.database.models import Student, User, StudentCompetency, Project, Competency
+from app.infrastructure.database.repositories.student_repo import StudentRepository
 from app.infrastructure.neo4j.graph_client import graph_client
 
-class StudentProfileDTO(BaseModel):
-    id: str
-    user_id: str
-    first_name: str
-    last_name: str
-    email: str
-    institution_name: str = "IIT Delhi"
-    current_year: int = 3
-    cgpa: float = 8.8
-    bio: str = "Full-stack and AI developer passionate about knowledge graphs and scalable backends."
-    github_url: str = "https://github.com/aarav-sharma"
-    linkedin_url: str = "https://linkedin.com/in/aarav-sharma"
-    readiness_score: float = 89.4
-    competencies: List[dict] = []
-    projects: List[dict] = []
-
 class StudentService:
-    async def get_profile(self, db: AsyncSession, user_id: str) -> dict:
-        result = await db.execute(select(Student).where(Student.user_id == user_id))
-        student = result.scalars().first()
+    async def get_profile(self, db: AsyncSession, identifier: str) -> Dict[str, Any]:
+        repo = StudentRepository(db)
+        
+        # Check by user_id first, then student_id
+        student = await repo.get_by_user_id(identifier)
+        if not student:
+            student = await repo.get_by_student_id(identifier)
+            
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Student profile not found for identifier '{identifier}'"
+            )
 
-        # Provide rich realistic fallback data for demo evaluation
+        user = student.user
+        institution = student.institution
+        department = student.department
+
+        competencies_list = []
+        for sc in student.competencies:
+            comp = sc.competency
+            competencies_list.append({
+                "id": comp.id if comp else sc.competency_id,
+                "name": comp.name if comp else "Unknown Competency",
+                "code": comp.code if comp else "",
+                "category": comp.category if comp else "Core Technical",
+                "proficiency": sc.proficiency_level,
+                "score": sc.score,
+                "confidence_score": sc.confidence_score,
+                "is_verified": sc.is_verified,
+                "verified_at": sc.verified_at.isoformat() if sc.verified_at else None
+            })
+
+        projects_list = []
+        for p in student.projects:
+            projects_list.append({
+                "id": p.id,
+                "title": p.title,
+                "summary": p.summary,
+                "repo_url": p.repo_url,
+                "live_url": p.live_url,
+                "is_verified": p.is_verified,
+                "demonstrated_skills": p.demonstrated_skills or []
+            })
+
         return {
-            "id": student.id if student else "stu-aarav-sharma",
-            "user_id": user_id,
-            "first_name": "Aarav",
-            "last_name": "Sharma",
-            "email": "aarav.sharma@example.edu.in",
-            "institution_name": "Indian Institute of Technology, Delhi",
-            "current_year": 3,
-            "cgpa": 8.92,
-            "bio": "AI Systems engineer with experience building full-stack web applications, knowledge graphs, and scalable microservices.",
-            "github_url": "https://github.com/aarav-sharma",
-            "linkedin_url": "https://linkedin.com/in/aaravsharma",
-            "portfolio_url": "https://aarav.dev",
-            "readiness_score": 89.4,
-            "competencies": [
-                {"name": "Python", "category": "Core Technical", "proficiency": "Advanced", "score": 92.0, "is_verified": True},
-                {"name": "FastAPI", "category": "Core Technical", "proficiency": "Intermediate", "score": 85.0, "is_verified": True},
-                {"name": "React & Next.js", "category": "Core Technical", "proficiency": "Advanced", "score": 88.0, "is_verified": True},
-                {"name": "Neo4j Graph DB", "category": "Architectural", "proficiency": "Intermediate", "score": 78.0, "is_verified": False},
-                {"name": "Docker & DevOps", "category": "DevOps", "proficiency": "Intermediate", "score": 80.0, "is_verified": True}
-            ],
-            "projects": [
-                {
-                    "id": "proj-1",
-                    "title": "SkillSetu - Knowledge Graph & Matchmaking Engine",
-                    "summary": "Built hybrid Neo4j + PostgreSQL architecture for real-time competency-to-opportunity matching.",
-                    "repo_url": "https://github.com/aarav/skillsetu",
-                    "live_url": "https://skillsetu.vercel.app",
-                    "is_verified": True,
-                    "demonstrated_skills": ["Python", "FastAPI", "Neo4j", "React"]
-                },
-                {
-                    "id": "proj-2",
-                    "title": "Cloud Distributed Log Aggregator",
-                    "summary": "High-throughput log pipeline processing 50k events/sec using Redis and FastAPI.",
-                    "repo_url": "https://github.com/aarav/log-stream",
-                    "is_verified": True,
-                    "demonstrated_skills": ["Python", "Docker", "FastAPI"]
-                }
-            ]
+            "id": student.id,
+            "user_id": student.user_id,
+            "first_name": user.first_name if user else "",
+            "last_name": user.last_name if user else "",
+            "email": user.email if user else "",
+            "phone": user.phone if user else None,
+            "avatar_url": user.avatar_url if user else None,
+            "institution_id": student.institution_id,
+            "institution_name": institution.name if institution else "Affiliated Institution",
+            "department_id": student.department_id,
+            "department_name": department.name if department else "Engineering & Technology",
+            "enrollment_number": student.enrollment_number,
+            "current_year": student.current_year,
+            "graduation_year": student.graduation_year,
+            "cgpa": student.cgpa,
+            "bio": student.bio,
+            "github_url": student.github_url,
+            "linkedin_url": student.linkedin_url,
+            "portfolio_url": student.portfolio_url,
+            "resume_url": student.resume_url,
+            "readiness_score": student.readiness_score,
+            "competencies": competencies_list,
+            "projects": projects_list,
+            "created_at": student.created_at.isoformat() if student.created_at else None
         }
 
     async def get_graph(self, student_id: str) -> dict:

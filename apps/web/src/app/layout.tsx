@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+import QueryProvider from "@/components/QueryProvider";
+import DevPersonaSwitcher from "@/components/DevPersonaSwitcher";
+
 export const metadata: Metadata = {
   title: "SkillSetu - AI Competency Graph & Opportunity Matchmaking Platform",
   description: "Bridging Students, Institutions, Faculty and Industry Recruiters with dynamic Neo4j knowledge graphs, explainable AI matchmaking and verified evidence portfolios.",
@@ -22,7 +25,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-[#111111] text-[#ededed] antialiased selection:bg-[#296ff0] selection:text-white">
-        {children}
+        <QueryProvider>
+          {children}
+          <DevPersonaSwitcher />
+        </QueryProvider>
       </body>
     </html>
   );
