@@ -192,3 +192,69 @@ export function useRoleRequirements(roleIdOrSlug?: string) {
     enabled: Boolean(roleIdOrSlug),
   });
 }
+
+export interface CanonicalCompetencyItem {
+  id: string;
+  name: string;
+  code: string;
+  slug: string;
+  category?: string;
+  category_id?: string;
+  domain_code?: string;
+  difficulty_level: string;
+  description?: string;
+  supporting_skills_count?: number;
+  relationships_count?: number;
+  status: string;
+}
+
+export function useCompetenciesCatalog(params?: {
+  search?: string;
+  domain?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.set("search", params.search);
+  if (params?.domain) searchParams.set("domain", params.domain);
+  if (params?.category) searchParams.set("category", params.category);
+  if (params?.limit) searchParams.set("limit", params.limit.toString());
+  if (params?.offset) searchParams.set("offset", params.offset.toString());
+
+  const queryString = searchParams.toString();
+  const endpoint = `/competencies${queryString ? `?${queryString}` : ""}`;
+
+  return useQuery<{ items: CanonicalCompetencyItem[]; total: number; limit: number; offset: number }>({
+    queryKey: ["competencies-catalog", params],
+    queryFn: () => apiClient.get<{ items: CanonicalCompetencyItem[]; total: number; limit: number; offset: number }>(endpoint),
+  });
+}
+
+export function useAddCompetency() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { name: string; code: string; category?: string; domain_code?: string; difficulty_level?: string; description?: string }) =>
+      apiClient.post<CanonicalCompetencyItem>("/competencies", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["competencies-catalog"] });
+      queryClient.invalidateQueries({ queryKey: ["student-competency-graph"] });
+    },
+  });
+}
+
+export function useTaxonomyDomains() {
+  return useQuery<Array<{ id: string; name: string; code: string; description?: string }>>({
+    queryKey: ["taxonomy-domains"],
+    queryFn: () => apiClient.get<Array<{ id: string; name: string; code: string; description?: string }>>("/competencies/domains"),
+  });
+}
+
+export function useTaxonomyCategories(domainCode?: string) {
+  const endpoint = `/competencies/categories${domainCode ? `?domain=${encodeURIComponent(domainCode)}` : ""}`;
+  return useQuery<Array<{ id: string; name: string; slug: string; domain_id?: string; domain_code?: string }>>({
+    queryKey: ["taxonomy-categories", domainCode],
+    queryFn: () => apiClient.get<Array<{ id: string; name: string; slug: string; domain_id?: string; domain_code?: string }>>(endpoint),
+  });
+}

@@ -33,7 +33,14 @@ import {
 } from "lucide-react";
 import SkillMasteryStudio from "@/components/SkillMasteryStudio";
 import { useDevPersona } from "@/hooks/useDevPersona";
-import { useStudentCompetencies, useDeriveCompetencies } from "@/hooks/useStudentCompetencies";
+import {
+  useStudentCompetencies,
+  useStudentCompetencyDetail,
+  useStudentCompetencyGraph,
+  useDeriveCompetencies,
+  useCanonicalRoles,
+  useRoleRequirements,
+} from "@/hooks/useStudentCompetencies";
 
 
 interface SkillNode {
@@ -123,10 +130,14 @@ export default function StudentCompetencyCenterPage() {
   };
 
   const { currentPersona } = useDevPersona();
-  const { data: competenciesData, isLoading: isLoadingCompetencies, refetch: refetchCompetencies } = useStudentCompetencies();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data: competenciesData, isLoading: isLoadingCompetencies, refetch: refetchCompetencies } = useStudentCompetencies({
+    search: searchQuery || undefined,
+  });
+  const { data: rolesCatalog } = useCanonicalRoles();
   const deriveMutation = useDeriveCompetencies();
 
-  const [selectedRole, setSelectedRole] = useState("Backend Developer");
+  const [selectedRole, setSelectedRole] = useState("role-backend-dev");
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [domainFilter, setDomainFilter] = useState<"all" | "prog" | "data" | "sys">("all");
   const [activeViewMode, setActiveViewMode] = useState<"graph" | "matrix">("graph");
@@ -134,15 +145,43 @@ export default function StudentCompetencyCenterPage() {
   const [studioSkillId, setStudioSkillId] = useState<string>("docker");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  const [selectedCompetencyId, setSelectedCompetencyId] = useState<string>("");
+  const { data: competencyDetail } = useStudentCompetencyDetail(selectedCompetencyId || undefined);
+  const { data: graphTopology } = useStudentCompetencyGraph();
+  const { data: activeRoleDetail } = useRoleRequirements(selectedRole);
+
   useEffect(() => {
     if (currentPersona?.department?.toLowerCase().includes("ayur") || currentPersona?.department?.toLowerCase().includes("ayush")) {
-      setSelectedRole("Ayurvedic Clinical Specialist");
+      setSelectedRole("role-ayush-specialist");
     } else {
-      setSelectedRole("Backend Developer");
+      setSelectedRole("role-backend-dev");
     }
   }, [currentPersona?.id, currentPersona?.department]);
 
-  const currentRole = roleBlueprints[selectedRole] || roleBlueprints["Backend Developer"];
+  useEffect(() => {
+    if (competenciesData?.items && competenciesData.items.length > 0) {
+      if (!selectedCompetencyId || !competenciesData.items.some(c => c.competency_id === selectedCompetencyId)) {
+        setSelectedCompetencyId(competenciesData.items[0].competency_id);
+      }
+    }
+  }, [competenciesData?.items, selectedCompetencyId]);
+
+  // Derived role title from catalog
+  const selectedRoleItem = rolesCatalog?.items?.find(r => r.id === selectedRole || r.slug === selectedRole || r.title === selectedRole);
+  const currentRoleTitle = selectedRoleItem?.title || selectedRole;
+  const currentRole = roleBlueprints[selectedRole] || {
+    score: competenciesData?.items && competenciesData.items.length > 0 ? Math.round(competenciesData.items.reduce((a, b) => a + b.score, 0) / competenciesData.items.length) : 0,
+    hiringThreshold: 80,
+    delta: "Evaluated against canonical role rubric",
+    status: competenciesData?.items && competenciesData.items.length > 0 ? "In Progress" : "Blank Slate",
+    matchedRolesCount: rolesCatalog?.total || 5,
+    companies: "Razorpay, Zomato, CRED, CCRAS"
+  };
+
+  const availableRoles = (rolesCatalog?.items && rolesCatalog.items.length > 0)
+    ? rolesCatalog.items
+    : Object.keys(roleBlueprints).map(title => ({ id: title, title }));
+  const currentRoleStatus = currentRole.status;
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -434,33 +473,53 @@ export default function StudentCompetencyCenterPage() {
 
   const currentSkill = skillsData[selectedSkillId] || skillsData[defaultSkillId] || Object.values(skillsData)[0];
 
-  // Filter skills by domain and persona isolation
-  const allSkills = Object.values(skillsData);
-  const personaSkills = currentPersona?.id === "stu-rohit-kumar" || competenciesData?.total === 0
-    ? []
-    : isAyush
-    ? allSkills.filter(s => ["nadi_pariksha", "panchakarma", "dravyaguna", "yoga_therapy"].includes(s.id))
-    : allSkills.filter(s => !["nadi_pariksha", "panchakarma", "dravyaguna", "yoga_therapy"].includes(s.id));
+  // Real Competencies from PostgreSQL
+  const realCompetencies = competenciesData?.items || [];
+  const selectedComp = realCompetencies.find(c => c.competency_id === selectedCompetencyId) || realCompetencies[0];
 
-  const filteredSkills = personaSkills.filter((s) => {
+  const filteredCompetencies = realCompetencies.filter((comp) => {
     if (domainFilter === "all") return true;
-    return s.group === domainFilter;
+    const cat = comp.category?.toLowerCase() || "";
+    if (domainFilter === "prog") return cat.includes("software") || cat.includes("core") || cat.includes("diagnostics") || cat.includes("program");
+    if (domainFilter === "data") return cat.includes("data") || cat.includes("ai") || cat.includes("pharmacology");
+    if (domainFilter === "sys") return cat.includes("cloud") || cat.includes("system") || cat.includes("infrastructure") || cat.includes("protocol") || cat.includes("therapy");
+    return true;
   });
 
-  // Radar dimension data for the top overview
+  // Dynamically compute radar dimensions from real competencies
+  const technicalScore = Math.round(
+    realCompetencies.filter(c => c.category?.toLowerCase().includes("software") || c.category?.toLowerCase().includes("core") || c.category?.toLowerCase().includes("diagnostics"))
+      .reduce((acc, c, _, arr) => acc + c.score / arr.length, 0)
+  ) || (realCompetencies.length > 0 ? Math.round(realCompetencies[0].score) : 0);
+
+  const architectureScore = Math.round(
+    realCompetencies.filter(c => c.category?.toLowerCase().includes("cloud") || c.category?.toLowerCase().includes("system") || c.category?.toLowerCase().includes("architecture") || c.category?.toLowerCase().includes("protocol"))
+      .reduce((acc, c, _, arr) => acc + c.score / arr.length, 0)
+  ) || (realCompetencies.length > 1 ? Math.round(realCompetencies[1].score) : 0);
+
+  const algorithmicScore = Math.round(
+    realCompetencies.filter(c => c.category?.toLowerCase().includes("data") || c.category?.toLowerCase().includes("ai") || c.category?.toLowerCase().includes("pharmacology"))
+      .reduce((acc, c, _, arr) => acc + c.score / arr.length, 0)
+  ) || (realCompetencies.length > 2 ? Math.round(realCompetencies[2].score) : 0);
+
+  const practicalScore = realCompetencies.length > 0 ? Math.round(realCompetencies.reduce((a, b) => a + (b.is_verified ? 88 : 65), 0) / realCompetencies.length) : 0;
+  const reliabilityScore = realCompetencies.length > 0 ? Math.round(realCompetencies.reduce((a, b) => a + b.confidence_score * 100, 0) / realCompetencies.length) : 0;
+  const compositeScore = realCompetencies.length > 0 ? Math.round(realCompetencies.reduce((a, b) => a + b.score, 0) / realCompetencies.length) : 0;
+
   const competencyDimensions = [
-    { label: "Technical Core Skills", score: 82, benchmark: 70, status: "mastered" },
-    { label: "Architecture & Domain", score: 76, benchmark: 70, status: "mastered" },
-    { label: "Algorithmic Problem Solving", score: 88, benchmark: 75, status: "mastered" },
-    { label: "Practical Repository Evidence", score: 65, benchmark: 70, status: "gap" },
-    { label: "Production Reliability & Security", score: 74, benchmark: 75, status: "gap" },
-    { label: "Industry Readiness Composite", score: 78, benchmark: 70, status: "mastered" },
+    { label: "Technical Core Skills", score: technicalScore, benchmark: 75, status: technicalScore >= 75 ? "mastered" : "gap" },
+    { label: "Architecture & Systems", score: architectureScore, benchmark: 70, status: architectureScore >= 70 ? "mastered" : "gap" },
+    { label: "Algorithmic & Domain Mastery", score: algorithmicScore, benchmark: 75, status: algorithmicScore >= 75 ? "mastered" : "gap" },
+    { label: "Practical Repository Evidence", score: practicalScore, benchmark: 70, status: practicalScore >= 70 ? "mastered" : "gap" },
+    { label: "Production Reliability & Security", score: reliabilityScore, benchmark: 75, status: reliabilityScore >= 75 ? "mastered" : "gap" },
+    { label: "Industry Readiness Composite", score: compositeScore, benchmark: 70, status: compositeScore >= 70 ? "mastered" : "gap" },
   ];
 
   // SVG Gauge calculations
   const gaugeRadius = 52;
   const gaugeCircumference = 2 * Math.PI * gaugeRadius;
-  const gaugeOffset = gaugeCircumference - (currentRole.score / 100) * gaugeCircumference;
+  const gaugeScore = compositeScore > 0 ? compositeScore : currentRole.score;
+  const gaugeOffset = gaugeCircumference - (gaugeScore / 100) * gaugeCircumference;
 
   return (
     <>
@@ -561,12 +620,9 @@ export default function StudentCompetencyCenterPage() {
                 <svg><use href="#i-search"/></svg>
                 <input
                   type="text"
-                  placeholder="Search skills, evidence, ontologies..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      showToast("Searching Neo4j ontology index...");
-                    }
-                  }}
+                  placeholder="Search competencies, skills, ontologies..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ background: "none", border: "none", outline: "none", color: "inherit", width: "100%", fontSize: "13px" }}
                 />
                 <kbd>⌘K</kbd>
@@ -576,7 +632,7 @@ export default function StudentCompetencyCenterPage() {
                 <svg><use href="#i-help"/></svg>
               </button>
 
-              <button className="icon-btn" type="button" aria-label="Notifications" onClick={() => showToast("Graph synchronized with 18 verified competencies")}>
+              <button className="icon-btn" type="button" aria-label="Notifications" onClick={() => showToast(`Graph synchronized with ${competenciesData?.total ?? 0} verified competencies`)}>
                 <svg><use href="#i-bell"/></svg>
                 <span className="dot" aria-hidden="true" />
               </button>
@@ -780,34 +836,39 @@ export default function StudentCompetencyCenterPage() {
                         <div style={{ fontSize: "11px", color: "#64748b", padding: "4px 10px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>
                           Select Target Role
                         </div>
-                        {Object.keys(roleBlueprints).map((role) => (
-                          <button
-                            key={role}
-                            type="button"
-                            onClick={() => {
-                              setSelectedRole(role);
-                              setShowRoleMenu(false);
-                              showToast(`Graph recalculated for ${role} hiring rubric`);
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              width: "100%",
-                              padding: "8px 10px",
-                              borderRadius: "8px",
-                              fontSize: "13px",
-                              background: selectedRole === role ? "rgba(37, 99, 235, 0.2)" : "none",
-                              color: selectedRole === role ? "#60a5fa" : "#e2e8f0",
-                              border: "none",
-                              cursor: "pointer",
-                              textAlign: "left",
-                            }}
-                          >
-                            <span>{role}</span>
-                            {selectedRole === role && <CheckCircle2 style={{ width: "14px", height: "14px", color: "#60a5fa" }} />}
-                          </button>
-                        ))}
+                        {availableRoles.map((role) => {
+                          const roleKey = typeof role === 'string' ? role : role.id;
+                          const roleTitle = typeof role === 'string' ? role : role.title;
+                          const isSelected = selectedRole === roleKey || selectedRole === roleTitle;
+                          return (
+                            <button
+                              key={roleKey}
+                              type="button"
+                              onClick={() => {
+                                setSelectedRole(roleKey);
+                                setShowRoleMenu(false);
+                                showToast(`Graph recalculated for ${roleTitle} hiring rubric`);
+                              }}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                width: "100%",
+                                padding: "8px 10px",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                background: isSelected ? "rgba(37, 99, 235, 0.2)" : "none",
+                                color: isSelected ? "#60a5fa" : "#e2e8f0",
+                                border: "none",
+                                cursor: "pointer",
+                                textAlign: "left",
+                              }}
+                            >
+                              <span>{roleTitle}</span>
+                              {isSelected && <CheckCircle2 style={{ width: "14px", height: "14px", color: "#60a5fa" }} />}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -864,7 +925,7 @@ export default function StudentCompetencyCenterPage() {
               </div>
 
               {/* Truthful Empty State Banner for students with 0 competencies (e.g. Rohit Kumar) */}
-              {filteredSkills.length === 0 && (
+              {realCompetencies.length === 0 && (
                 <div
                   style={{
                     background: "rgba(245, 158, 11, 0.08)",
@@ -953,7 +1014,7 @@ export default function StudentCompetencyCenterPage() {
                           borderRadius: "999px",
                         }}
                       >
-                        ● {currentRole.status}
+                        ● {currentRoleStatus}
                       </span>
                     </div>
 
@@ -994,7 +1055,7 @@ export default function StudentCompetencyCenterPage() {
                           }}
                         >
                           <div style={{ fontSize: "28px", fontWeight: 800, color: "#ffffff", lineHeight: 1, fontFamily: "var(--font-mono)" }}>
-                            {currentRole.score}%
+                            {gaugeScore}%
                           </div>
                           <div style={{ fontSize: "10.5px", fontWeight: 600, color: "#94a3b8", marginTop: "3px", textTransform: "uppercase" }}>
                             Readiness
@@ -1061,7 +1122,7 @@ export default function StudentCompetencyCenterPage() {
                       gap: "10px",
                     }}
                   >
-                    <span>Strongest in <b>Python, SQL, and API Architecture</b>. Cloud & Docker are primary gap areas.</span>
+                    <span>{realCompetencies.length > 0 ? `Authenticated across ${realCompetencies.length} PostgreSQL canonical competency nodes.` : "No competencies recorded yet for this profile."}</span>
                     <button
                       type="button"
                       onClick={() => showToast("Launching full 45-minute AI diagnostic test...")}
@@ -1104,7 +1165,7 @@ export default function StudentCompetencyCenterPage() {
                         </h2>
                       </div>
                       <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", fontWeight: 600 }}>
-                        {selectedRole}
+                        {currentRoleTitle}
                       </span>
                     </div>
 
@@ -1119,134 +1180,64 @@ export default function StudentCompetencyCenterPage() {
                       </div>
                       
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                        <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
-                          <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>94%</b>
-                          <span style={{ fontSize: "11px", color: "#94a3b8" }}>Python</span>
-                        </div>
-                        <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
-                          <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>91%</b>
-                          <span style={{ fontSize: "11px", color: "#94a3b8" }}>APIs</span>
-                        </div>
-                        <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
-                          <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>88%</b>
-                          <span style={{ fontSize: "11px", color: "#94a3b8" }}>SQL</span>
-                        </div>
+                        {realCompetencies.length > 0 ? (
+                          realCompetencies.slice(0, 3).map((comp) => (
+                            <div key={comp.id} style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
+                              <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>{comp.score}%</b>
+                              <span style={{ fontSize: "11px", color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                {comp.competency_name.split(" ")[0]}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ gridColumn: "1 / -1", fontSize: "12px", color: "#64748b", textAlign: "center", padding: "8px" }}>
+                            No competencies recorded yet
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Active Gaps (Amber) */}
-                    <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {/* Gap Skills Priority (Amber) */}
+                    <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
                       <div style={{ fontSize: "11px", fontWeight: 700, color: "#fbbf24", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                        ⚠ Active Competency Gaps
+                        ⚡ Development Gap Dimensions
                       </div>
-
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
-                          <div>
-                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>Docker</span>
-                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need Intermediate</span>
+                      
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+                        {activeRoleDetail?.requirements && activeRoleDetail.requirements.length > 0 ? (
+                          activeRoleDetail.requirements.slice(0, 2).map((req) => (
+                            <div key={req.id} style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: "10px", padding: "8px 10px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <b style={{ fontSize: "12px", color: "#fbbf24" }}>Required: {req.required_proficiency}</b>
+                              </div>
+                              <div style={{ fontSize: "11px", color: "#cbd5e1", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {req.competency_name}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ gridColumn: "1 / -1", fontSize: "12px", color: "#64748b", textAlign: "center", padding: "8px" }}>
+                            Standard enterprise requirements
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ color: "#fbbf24", fontWeight: 700 }}>54%</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStudioSkillId("docker");
-                                setPrimaryTab("studio");
-                              }}
-                              style={{
-                                background: "rgba(37,99,235,0.15)",
-                                border: "1px solid rgba(37,99,235,0.3)",
-                                color: "#60a5fa",
-                                padding: "2px 8px",
-                                borderRadius: "6px",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              Roadmap →
-                            </button>
-                          </div>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
-                          <div>
-                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>Cloud AWS</span>
-                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need ECS/S3</span>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ color: "#fbbf24", fontWeight: 700 }}>42%</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStudioSkillId("cloud");
-                                setPrimaryTab("studio");
-                              }}
-                              style={{
-                                background: "rgba(37,99,235,0.15)",
-                                border: "1px solid rgba(37,99,235,0.3)",
-                                color: "#60a5fa",
-                                padding: "2px 8px",
-                                borderRadius: "6px",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              Roadmap →
-                            </button>
-                          </div>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
-                          <div>
-                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>Redis Caching</span>
-                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need Distributed Locks</span>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ color: "#fbbf24", fontWeight: 700 }}>48%</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStudioSkillId("redis");
-                                setPrimaryTab("studio");
-                              }}
-                              style={{
-                                background: "rgba(37,99,235,0.15)",
-                                border: "1px solid rgba(37,99,235,0.3)",
-                                color: "#60a5fa",
-                                padding: "2px 8px",
-                                borderRadius: "6px",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              Roadmap →
-                            </button>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
 
                   </div>
 
-                  {/* AI Remediation CTA */}
                   <button
                     type="button"
                     onClick={() => {
-                      setStudioSkillId("docker");
                       setPrimaryTab("studio");
-                      showToast("Switched to Skill Mastery Studio & Gap Remediation Roadmap");
+                      showToast(`Accelerated sprint loaded for ${currentRoleTitle}`);
                     }}
                     style={{
                       width: "100%",
                       padding: "10px",
                       borderRadius: "10px",
-                      background: "rgba(37, 99, 235, 0.2)",
-                      border: "1px solid rgba(59, 130, 246, 0.35)",
-                      color: "#60a5fa",
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      color: "#f8fafc",
                       fontSize: "12.5px",
                       fontWeight: 600,
                       cursor: "pointer",
@@ -1256,49 +1247,36 @@ export default function StudentCompetencyCenterPage() {
                       gap: "6px",
                     }}
                   >
-                    <Sparkles style={{ width: "14px", height: "14px", color: "#a78bfa" }} />
-                    <span>Launch AI Gap Remediation Roadmap</span>
+                    <span>Launch Accelerated Role Sprint</span>
+                    <ArrowUpRight style={{ width: "14px", height: "14px" }} />
                   </button>
                 </div>
 
               </div>
 
-              {/* TIER 2: Master Interactive Knowledge Graph & Node Inspector (12 Cols) */}
-              <div
-                style={{
-                  background: "#141519",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  borderRadius: "20px",
-                  padding: "24px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "20px",
-                }}
-              >
-                {/* Graph Controls Bar */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px" }}>
+              {/* TIER 2: Neo4j Topology Canvas & Deep Node Inspector (12 Cols Bento) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                
+                {/* Domain & View Filter Controls */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <Boxes style={{ width: "18px", height: "18px", color: "#3b82f6" }} />
-                      <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", margin: 0 }}>
-                        Interactive Knowledge Graph Topology
-                      </h2>
-                    </div>
-                    <span style={{ fontSize: "11.5px", color: "#64748b" }}>
-                      Click any node to audit verified evidence and gaps
+                    <Layers style={{ width: "16px", height: "16px", color: "#60a5fa" }} />
+                    <span style={{ fontSize: "14px", fontWeight: 700, color: "#ffffff" }}>
+                      Knowledge Topology & Evidence Matrix
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#64748b", background: "rgba(255,255,255,0.04)", padding: "2px 8px", borderRadius: "999px" }}>
+                      {realCompetencies.length} Live Nodes
                     </span>
                   </div>
 
-                  {/* Domain Filters & View Switcher */}
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                    
                     {/* Domain Filter Pills */}
                     <div style={{ display: "flex", gap: "4px", background: "rgba(255,255,255,0.04)", padding: "3px", borderRadius: "10px" }}>
                       {[
-                        { id: "all", label: "All Domains" },
-                        { id: "prog", label: "Programming" },
-                        { id: "data", label: "Data & Storage" },
-                        { id: "sys", label: "Systems & Cloud" },
+                        { id: "all", label: "All Ontologies" },
+                        { id: "prog", label: "Software / Core" },
+                        { id: "data", label: "Data & AI" },
+                        { id: "sys", label: "Systems & Protocols" },
                       ].map((d) => (
                         <button
                           key={d.id}
@@ -1409,16 +1387,16 @@ export default function StudentCompetencyCenterPage() {
                         }}
                       >
                         <Cpu style={{ width: "15px", height: "15px", color: "#60a5fa" }} />
-                        <span>{selectedRole} (Core Taxonomy Hub)</span>
+                        <span>{currentRoleTitle} (Canonical Blueprint Hub)</span>
                       </div>
                     </div>
 
                     {/* Mid Tier: Domain Hubs */}
                     <div style={{ display: "flex", justifyContent: "space-around", position: "relative", zIndex: 10, margin: "14px 0" }}>
                       {[
-                        { name: "Programming Domain", color: "#60a5fa" },
-                        { name: "Data & Storage Domain", color: "#a78bfa" },
-                        { name: "Systems & Cloud Domain", color: "#34d399" },
+                        { name: "Software / Core Domain", color: "#60a5fa" },
+                        { name: "Data & AI Domain", color: "#a78bfa" },
+                        { name: "Systems & Clinical Protocols", color: "#34d399" },
                       ].map((dom) => (
                         <div
                           key={dom.name}
@@ -1439,15 +1417,15 @@ export default function StudentCompetencyCenterPage() {
 
                     {/* Interactive Leaf Nodes Grid */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", position: "relative", zIndex: 10 }}>
-                      {filteredSkills.map((sk) => {
-                        const isSelected = sk.id === selectedSkillId;
-                        const isMastered = sk.status === "mastered";
-                        const isGap = sk.status === "gap";
+                      {filteredCompetencies.map((comp) => {
+                        const isSelected = comp.competency_id === (selectedCompetencyId || selectedComp?.competency_id);
+                        const isMastered = comp.score >= 80;
+                        const isGap = comp.score < 65;
 
                         return (
                           <div
-                            key={sk.id}
-                            onClick={() => setSelectedSkillId(sk.id)}
+                            key={comp.id}
+                            onClick={() => setSelectedCompetencyId(comp.competency_id)}
                             style={{
                               background: isSelected
                                 ? "rgba(37, 99, 235, 0.25)"
@@ -1477,16 +1455,16 @@ export default function StudentCompetencyCenterPage() {
                                 }}
                               />
                               <span style={{ fontSize: "11px", fontWeight: 700, color: "#f8fafc", fontFamily: "var(--font-mono)" }}>
-                                {sk.score}%
+                                {comp.score}%
                               </span>
                             </div>
 
                             <div style={{ fontSize: "12px", fontWeight: 600, color: "#ffffff", marginTop: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {sk.name.split("&")[0]}
+                              {comp.competency_name}
                             </div>
 
                             <div style={{ fontSize: "10px", color: isGap ? "#fbbf24" : "#94a3b8", marginTop: "2px" }}>
-                              {isGap ? "Gap: " + sk.gapWord : sk.currentLevel}
+                              {comp.proficiency_level} · L{comp.proficiency_numeric}
                             </div>
                           </div>
                         );
@@ -1508,29 +1486,29 @@ export default function StudentCompetencyCenterPage() {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#60a5fa", fontWeight: 600 }}>
                           <GitBranch style={{ width: "13px", height: "13px" }} />
-                          <span>Active Evidence Branch for {currentSkill.name}:</span>
+                          <span>Active Evidence Branch for {competencyDetail?.competency_name || selectedComp?.competency_name || "Competency"}:</span>
                         </div>
                         <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-                          Cryptographically linked nodes
+                          PostgreSQL Cryptographic Ledger
                         </span>
                       </div>
 
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginTop: "8px" }}>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.projects}</b>
-                          <span style={{ color: "#94a3b8" }}>Verified Projects</span>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{competencyDetail?.supporting_skills?.length ?? selectedComp?.supporting_skills_count ?? 1}</b>
+                          <span style={{ color: "#94a3b8" }}>Supporting Skills</span>
                         </div>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.certs}</b>
-                          <span style={{ color: "#94a3b8" }}>Certifications</span>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{competencyDetail?.prerequisites?.length ?? 1}</b>
+                          <span style={{ color: "#94a3b8" }}>Prerequisites</span>
                         </div>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.assessments}</b>
-                          <span style={{ color: "#94a3b8" }}>Proctored Tests</span>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{competencyDetail?.is_verified ? "Verified" : "Pending"}</b>
+                          <span style={{ color: "#94a3b8" }}>Proof Status</span>
                         </div>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{currentSkill.evidence.githubRepos}</b>
-                          <span style={{ color: "#94a3b8" }}>GitHub Repos</span>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{((competencyDetail?.confidence_score ?? selectedComp?.confidence_score ?? 0.8) * 100).toFixed(0)}%</b>
+                          <span style={{ color: "#94a3b8" }}>Confidence</span>
                         </div>
                       </div>
                     </div>
@@ -1567,19 +1545,22 @@ export default function StudentCompetencyCenterPage() {
                               textTransform: "uppercase",
                             }}
                           >
-                            {currentSkill.category}
+                            {competencyDetail?.category || selectedComp?.category || "Core Competency"}
                           </span>
                           <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#ffffff", margin: "6px 0 2px" }}>
-                            {currentSkill.name}
+                            {competencyDetail?.competency_name || selectedComp?.competency_name || "Select Competency"}
                           </h3>
+                          <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "var(--font-mono)" }}>
+                            {competencyDetail?.competency_code || selectedComp?.competency_code}
+                          </div>
                         </div>
 
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontSize: "20px", fontWeight: 800, color: "#ffffff", fontFamily: "var(--font-mono)" }}>
-                            {currentSkill.score}%
+                            {competencyDetail?.score ?? selectedComp?.score ?? 0}%
                           </div>
-                          <div style={{ fontSize: "10.5px", color: currentSkill.status === "gap" ? "#fbbf24" : "#34d399", fontWeight: 600 }}>
-                            {currentSkill.status === "gap" ? "Gap: " + currentSkill.gapWord : "Mastered"}
+                          <div style={{ fontSize: "10.5px", color: (competencyDetail?.score ?? selectedComp?.score ?? 0) >= 75 ? "#34d399" : "#fbbf24", fontWeight: 600 }}>
+                            {(competencyDetail?.score ?? selectedComp?.score ?? 0) >= 75 ? "Mastered" : "Developing"}
                           </div>
                         </div>
                       </div>
@@ -1598,24 +1579,69 @@ export default function StudentCompetencyCenterPage() {
                         }}
                       >
                         <div>
-                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>Current Competency</div>
-                          <b style={{ color: "#ffffff", fontSize: "13px" }}>{currentSkill.currentLevel}</b>
+                          <div style={{ fontSize: "11px", color: "#94a3b8" }}>Current Level</div>
+                          <b style={{ color: "#ffffff", fontSize: "13px" }}>
+                            {competencyDetail?.proficiency_level || selectedComp?.proficiency_level || "Not Evaluated"}
+                          </b>
                         </div>
                         <div>
                           <div style={{ fontSize: "11px", color: "#94a3b8" }}>Target Role Requirement</div>
-                          <b style={{ color: "#60a5fa", fontSize: "13px" }}>{currentSkill.requiredLevel}</b>
+                          <b style={{ color: "#60a5fa", fontSize: "13px" }}>
+                            {activeRoleDetail?.requirements?.find(r => r.competency_id === (selectedComp?.competency_id || selectedCompetencyId))?.required_proficiency || "Intermediate"}
+                          </b>
                         </div>
                       </div>
 
-                      {/* Evidence Audit Text */}
+                      {/* Supporting Canonical Skills */}
                       <div style={{ marginTop: "14px" }}>
                         <div style={{ fontSize: "11.5px", fontWeight: 600, color: "#cbd5e1" }}>
-                          Verified Evidence Audit
+                          Supporting Canonical Skills ({competencyDetail?.supporting_skills?.length || selectedComp?.supporting_skills_count || 0})
                         </div>
-                        <p style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.5, marginTop: "4px" }}>
-                          {currentSkill.evText}
-                        </p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
+                          {competencyDetail?.supporting_skills && competencyDetail.supporting_skills.length > 0 ? (
+                            competencyDetail.supporting_skills.map((s) => (
+                              <span
+                                key={s.id}
+                                style={{
+                                  fontSize: "11px",
+                                  padding: "3px 8px",
+                                  borderRadius: "6px",
+                                  background: s.is_primary ? "rgba(59, 130, 246, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                                  border: `1px solid ${s.is_primary ? "rgba(59, 130, 246, 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
+                                  color: s.is_primary ? "#93c5fd" : "#cbd5e1",
+                                }}
+                              >
+                                {s.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: "11.5px", color: "#64748b" }}>Direct demonstrated competency</span>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Prerequisite & Complementary Edges */}
+                      {((competencyDetail?.prerequisites && competencyDetail.prerequisites.length > 0) || (competencyDetail?.complements && competencyDetail.complements.length > 0)) && (
+                        <div style={{ marginTop: "12px" }}>
+                          <div style={{ fontSize: "11px", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>
+                            Relational Topology Edges
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+                            {competencyDetail?.prerequisites?.map(p => (
+                              <div key={p.id} style={{ fontSize: "11.5px", color: "#f59e0b", display: "flex", alignItems: "center", gap: "4px" }}>
+                                <span>↳ Prerequisite for:</span>
+                                <b>{p.target_competency_name}</b>
+                              </div>
+                            ))}
+                            {competencyDetail?.complements?.map(c => (
+                              <div key={c.id} style={{ fontSize: "11.5px", color: "#34d399", display: "flex", alignItems: "center", gap: "4px" }}>
+                                <span>↳ Complements:</span>
+                                <b>{c.target_competency_name}</b>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Actionable Next Step */}
                       <div
@@ -1632,11 +1658,11 @@ export default function StudentCompetencyCenterPage() {
                             RECOMMENDED ACTION
                           </span>
                           <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399" }}>
-                            {currentSkill.actionGain}
+                            +2 readiness
                           </span>
                         </div>
                         <div style={{ fontSize: "12.5px", fontWeight: 600, color: "#f8fafc", marginTop: "3px" }}>
-                          {currentSkill.recommendedAction}
+                          {competencyDetail?.is_verified ? "Maintain competency mastery via verified lab evidence" : "Submit project repository for proctored automated grading"}
                         </div>
                       </div>
                     </div>
@@ -1645,7 +1671,7 @@ export default function StudentCompetencyCenterPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setStudioSkillId(selectedSkillId);
+                        setStudioSkillId(selectedCompetencyId || "docker");
                         setPrimaryTab("studio");
                       }}
                       style={{

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Network, Sparkles, CheckCircle2, Info, Filter, Layers, ZoomIn, RefreshCw } from 'lucide-react';
+import { useDevPersona } from '@/hooks/useDevPersona';
+import { useStudentCompetencyGraph } from '@/hooks/useStudentCompetencies';
 
 interface Node {
   id: string;
@@ -25,32 +27,72 @@ export default function GraphVisualizer() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [filter, setFilter] = useState<'ALL' | 'VERIFIED' | 'OPPORTUNITIES'>('ALL');
 
-  // Interactive coordinate map for knowledge graph nodes
-  const nodes: Node[] = [
-    { id: 's_aarav', label: 'Aarav Sharma', group: 'student', score: 89.4, x: 380, y: 220 },
-    { id: 'c_py', label: 'Python', group: 'competency', category: 'Core Technical', score: 92, verified: true, x: 220, y: 130 },
-    { id: 'c_fastapi', label: 'FastAPI Backend', group: 'competency', category: 'Core Technical', score: 85, verified: true, x: 190, y: 250 },
-    { id: 'c_react', label: 'React / Next.js', group: 'competency', category: 'Core Technical', score: 88, verified: true, x: 270, y: 340 },
-    { id: 'c_neo4j', label: 'Neo4j Graph DB', group: 'competency', category: 'Architectural', score: 78, verified: false, x: 490, y: 350 },
-    { id: 'c_ml', label: 'Applied ML', group: 'competency', category: 'Applied Domain', score: 84, verified: true, x: 530, y: 130 },
-    { id: 'p_skillsetu', label: 'Project: SkillSetu', group: 'project', verified: true, x: 110, y: 360 },
-    { id: 'o_fullstack', label: 'AI Platform Intern', group: 'opportunity', score: 91.5, x: 580, y: 240 },
-  ];
+  const { currentPersona } = useDevPersona();
+  const { data: graphData, isLoading, refetch } = useStudentCompetencyGraph();
 
-  const links: Link[] = [
-    { source: 's_aarav', target: 'c_py', label: 'HAS_COMPETENCY (92%)', type: 'HAS_COMPETENCY' },
-    { source: 's_aarav', target: 'c_fastapi', label: 'HAS_COMPETENCY (85%)', type: 'HAS_COMPETENCY' },
-    { source: 's_aarav', target: 'c_react', label: 'HAS_COMPETENCY (88%)', type: 'HAS_COMPETENCY' },
-    { source: 's_aarav', target: 'c_neo4j', label: 'HAS_COMPETENCY (78%)', type: 'HAS_COMPETENCY' },
-    { source: 's_aarav', target: 'c_ml', label: 'HAS_COMPETENCY (84%)', type: 'HAS_COMPETENCY' },
-    { source: 's_aarav', target: 'p_skillsetu', label: 'COMPLETED', type: 'COMPLETED' },
-    { source: 'p_skillsetu', target: 'c_fastapi', label: 'DEMONSTRATES', type: 'DEMONSTRATES' },
-    { source: 'p_skillsetu', target: 'c_react', label: 'DEMONSTRATES', type: 'DEMONSTRATES' },
-    { source: 'p_skillsetu', target: 'c_neo4j', label: 'DEMONSTRATES', type: 'DEMONSTRATES' },
-    { source: 'c_fastapi', target: 'o_fullstack', label: 'REQUIRED_FOR', type: 'REQUIRED_FOR' },
-    { source: 'c_react', target: 'o_fullstack', label: 'REQUIRED_FOR', type: 'REQUIRED_FOR' },
-    { source: 's_aarav', target: 'o_fullstack', label: 'MATCHED_TO (91.5%)', type: 'MATCHED_TO' }
-  ];
+  // Dynamic layout calculation for knowledge graph nodes from real PostgreSQL graph
+  const nodes: Node[] = useMemo(() => {
+    const studentNode: Node = {
+      id: currentPersona?.id || 'student',
+      label: currentPersona?.name || 'Student Identity',
+      group: 'student',
+      score: 88,
+      verified: true,
+      x: 380,
+      y: 210,
+    };
+
+    if (!graphData?.nodes || graphData.nodes.length === 0) {
+      return [studentNode];
+    }
+
+    const centerX = 380;
+    const centerY = 210;
+    const radius = 160;
+    const total = graphData.nodes.length;
+
+    const dynamicNodes: Node[] = graphData.nodes.map((n, i) => {
+      const angle = (2 * Math.PI / Math.max(total, 1)) * i;
+      const x = Math.round(centerX + radius * Math.cos(angle));
+      const y = Math.round(centerY + (radius * 0.72) * Math.sin(angle));
+      const group = n.type === 'competency' ? 'competency' : n.type === 'skill' ? 'project' : 'opportunity';
+      return {
+        id: n.id,
+        label: n.name || n.label,
+        group: group as any,
+        category: n.category || n.type,
+        score: n.score || 80,
+        verified: n.is_verified ?? true,
+        x,
+        y,
+      };
+    });
+
+    return [studentNode, ...dynamicNodes];
+  }, [graphData?.nodes, currentPersona]);
+
+  // Dynamic links from graph edges + student connections
+  const links: Link[] = useMemo(() => {
+    const studentId = currentPersona?.id || 'student';
+    const edgeLinks: Link[] = (graphData?.edges || []).map((e) => ({
+      source: e.source,
+      target: e.target,
+      label: e.relationship,
+      type: e.relationship,
+    }));
+
+    // Connect student node to competency nodes
+    const studentCompetencyLinks: Link[] = (graphData?.nodes || [])
+      .filter((n) => n.type === 'competency')
+      .map((c) => ({
+        source: studentId,
+        target: c.id,
+        label: 'HAS_COMPETENCY',
+        type: 'HAS_COMPETENCY',
+      }));
+
+    return [...edgeLinks, ...studentCompetencyLinks];
+  }, [graphData?.edges, graphData?.nodes, currentPersona]);
 
   const getNodeColor = (node: Node) => {
     switch (node.group) {
@@ -103,6 +145,13 @@ export default function GraphVisualizer() {
             className={`px-2.5 py-1 rounded-md transition-colors ${filter === 'OPPORTUNITIES' ? 'bg-cyan-600 text-white font-medium shadow' : 'text-slate-400 hover:text-slate-200'}`}
           >
             Match Walks
+          </button>
+          <button
+            onClick={() => refetch()}
+            title="Reload live graph from PostgreSQL"
+            className="p-1.5 rounded-md text-slate-400 hover:text-white transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
           </button>
         </div>
       </div>

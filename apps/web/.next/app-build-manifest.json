@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/student/competency/page": [
+    "/student/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/student/competency/page.js"
+      "static/chunks/app/student/profile/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,10 +11,30 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/student/competency/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/student/competency/page.js"
+    ],
+    "/admin/taxonomy/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/taxonomy/page.js"
+    ],
+    "/student/passport/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/student/passport/page.js"
+    ],
     "/student/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/student/dashboard/page.js"
+    ],
+    "/admin/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/dashboard/page.js"
     ]
   }
 }

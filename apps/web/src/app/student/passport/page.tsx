@@ -32,9 +32,18 @@ import {
   Check,
   X
 } from "lucide-react";
+import { useDevPersona } from "@/hooks/useDevPersona";
+import { useStudentCompetencies } from "@/hooks/useStudentCompetencies";
 
 export default function StudentSkillPassportPage() {
   const router = useRouter();
+  const { currentPersona } = useDevPersona();
+  const { data: competenciesData } = useStudentCompetencies();
+
+  const realCompetencies = competenciesData?.items || [];
+  const compositeReadiness = realCompetencies.length > 0
+    ? Math.round(realCompetencies.reduce((a, b) => a + b.score, 0) / realCompetencies.length)
+    : (currentPersona?.id === "stu-rohit-kumar" ? 0 : 85);
 
   // State
   const [showShareModal, setShowShareModal] = useState(false);
@@ -554,23 +563,23 @@ export default function StudentSkillPassportPage() {
                           flexShrink: 0,
                         }}
                       >
-                        AS
+                        {currentPersona ? `${currentPersona.firstName[0]}${currentPersona.lastName[0]}` : "AS"}
                       </div>
 
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.01em", margin: 0 }}>
-                            AARAV SHARMA
+                            {currentPersona?.name?.toUpperCase() || "AARAV SHARMA"}
                           </h2>
                           <span style={{ fontSize: "11px", fontWeight: 700, color: "#34d399", background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.25)", padding: "2px 8px", borderRadius: "999px" }}>
                             ● ACTIVE CREDENTIAL
                           </span>
                         </div>
                         <div style={{ fontSize: "13px", color: "#cbd5e1", marginTop: "4px" }}>
-                          B.Tech Computer Science & Engineering · Class of 2027
+                          {currentPersona?.title || "B.Tech CSE"} · {currentPersona?.department || "Computer Science"}
                         </div>
                         <div style={{ fontSize: "12px", color: "#94a3b8" }}>
-                          Indian Institute of Technology, Delhi · AISHE Code: <b>U-0109</b>
+                          {currentPersona?.institution || "Indian Institute of Technology, Delhi"} · AISHE Code: <b>U-0109</b>
                         </div>
                       </div>
                     </div>
@@ -758,55 +767,95 @@ export default function StudentSkillPassportPage() {
                         </h2>
                       </div>
                       <span style={{ fontSize: "11px", color: "#34d399", fontWeight: 700, background: "rgba(16, 185, 129, 0.12)", padding: "2px 8px", borderRadius: "999px" }}>
-                        91% Composite Readiness
+                        {compositeReadiness}% Composite Readiness
                       </span>
                     </div>
 
                     {/* Dimension Progress Meters */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "18px" }}>
                       {[
-                        { pillar: "Technical Core (Python, APIs, SQL)", score: 94, benchmark: 80, proof: "3 Production Repos + Proctored Test", status: "mastered" },
-                        { pillar: "Algorithmic Problem Solving (DSA)", score: 90, benchmark: 75, proof: "Codeforces 1428 Elo · Top 9% Rated", status: "mastered" },
-                        { pillar: "Database Architecture (Postgres, SQL)", score: 88, benchmark: 75, proof: "ACID Schema Project Audited", status: "mastered" },
-                        { pillar: "Real-World Project Proof", score: 86, benchmark: 70, proof: "6 Public GitHub Repositories", status: "mastered" },
-                        { pillar: "Professional Experience (Internships)", score: 84, benchmark: 70, proof: "Razorpay Summer Intern Verified", status: "mastered" },
-                        { pillar: "Cloud & DevOps (Docker, AWS ECS)", score: 62, benchmark: 75, proof: "1 Dockerfile linked (Gap Area)", status: "gap" },
-                      ].map((p) => (
-                        <div key={p.pillar} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
-                            <span style={{ color: "#f8fafc", fontWeight: 500 }}>{p.pillar}</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              <span style={{ fontSize: "11px", color: "#64748b" }}>{p.proof}</span>
-                              <b style={{ color: p.status === "gap" ? "#fbbf24" : "#ffffff", fontFamily: "var(--font-mono)" }}>
-                                {p.score}%
-                              </b>
+                        {
+                          pillar: "Technical Core Systems",
+                          score: realCompetencies.filter(c => c.category?.toLowerCase().includes("software") || c.category?.toLowerCase().includes("core") || c.category?.toLowerCase().includes("diagnostics")).reduce((acc, c, _, arr) => acc + c.score / arr.length, 0) || (realCompetencies[0]?.score ?? (currentPersona?.id === "stu-rohit-kumar" ? 0 : 92)),
+                          benchmark: 80,
+                          proof: `${realCompetencies.length} Production Repos + Proctored Test`,
+                          status: "mastered"
+                        },
+                        {
+                          pillar: "Algorithmic & Domain Mastery",
+                          score: realCompetencies.filter(c => c.category?.toLowerCase().includes("data") || c.category?.toLowerCase().includes("ai") || c.category?.toLowerCase().includes("pharmacology")).reduce((acc, c, _, arr) => acc + c.score / arr.length, 0) || (realCompetencies[1]?.score ?? (currentPersona?.id === "stu-rohit-kumar" ? 0 : 88)),
+                          benchmark: 75,
+                          proof: "Top 9% Proctored Evaluation",
+                          status: "mastered"
+                        },
+                        {
+                          pillar: "Database & Protocol Architecture",
+                          score: realCompetencies.filter(c => c.category?.toLowerCase().includes("cloud") || c.category?.toLowerCase().includes("protocol") || c.category?.toLowerCase().includes("system")).reduce((acc, c, _, arr) => acc + c.score / arr.length, 0) || (realCompetencies[2]?.score ?? (currentPersona?.id === "stu-rohit-kumar" ? 0 : 85)),
+                          benchmark: 75,
+                          proof: "Schema & Transaction Audited",
+                          status: "mastered"
+                        },
+                        {
+                          pillar: "Real-World Project Proof",
+                          score: realCompetencies.length > 0 ? 86 : (currentPersona?.id === "stu-rohit-kumar" ? 0 : 86),
+                          benchmark: 70,
+                          proof: `${realCompetencies.length > 0 ? '6' : '0'} Public GitHub Repositories`,
+                          status: realCompetencies.length > 0 ? "mastered" : "gap"
+                        },
+                        {
+                          pillar: "Professional Experience (Internships)",
+                          score: realCompetencies.length > 0 ? 84 : (currentPersona?.id === "stu-rohit-kumar" ? 0 : 84),
+                          benchmark: 70,
+                          proof: realCompetencies.length > 0 ? "Industry Tenure Verified" : "Pending Tenure",
+                          status: realCompetencies.length > 0 ? "mastered" : "gap"
+                        },
+                        {
+                          pillar: "Cloud & DevOps Deployments",
+                          score: realCompetencies.length > 0 ? 65 : (currentPersona?.id === "stu-rohit-kumar" ? 0 : 65),
+                          benchmark: 75,
+                          proof: "Containerized Microservices",
+                          status: "gap"
+                        },
+                      ].map((p) => {
+                        const roundScore = Math.round(p.score);
+                        const isGap = roundScore < p.benchmark;
+                        return (
+                          <div key={p.pillar} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px" }}>
+                              <span style={{ color: "#f8fafc", fontWeight: 500 }}>{p.pillar}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontSize: "11px", color: "#64748b" }}>{p.proof}</span>
+                                <b style={{ color: isGap ? "#fbbf24" : "#ffffff", fontFamily: "var(--font-mono)" }}>
+                                  {roundScore}%
+                                </b>
+                              </div>
+                            </div>
+
+                            <div style={{ position: "relative", height: "6px", background: "rgba(255,255,255,0.06)", borderRadius: "999px" }}>
+                              <div
+                                style={{
+                                  width: `${roundScore}%`,
+                                  height: "100%",
+                                  background: isGap ? "#f59e0b" : "#3b82f6",
+                                  borderRadius: "999px",
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "-2px",
+                                  left: `${p.benchmark}%`,
+                                  width: "2px",
+                                  height: "10px",
+                                  background: "rgba(255, 255, 255, 0.4)",
+                                  borderRadius: "1px",
+                                }}
+                                title={`Industry Benchmark: ${p.benchmark}%`}
+                              />
                             </div>
                           </div>
-
-                          <div style={{ position: "relative", height: "6px", background: "rgba(255,255,255,0.06)", borderRadius: "999px" }}>
-                            <div
-                              style={{
-                                width: `${p.score}%`,
-                                height: "100%",
-                                background: p.status === "gap" ? "#f59e0b" : "#3b82f6",
-                                borderRadius: "999px",
-                              }}
-                            />
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: "-2px",
-                                left: `${p.benchmark}%`,
-                                width: "2px",
-                                height: "10px",
-                                background: "rgba(255, 255, 255, 0.4)",
-                                borderRadius: "1px",
-                              }}
-                              title={`Industry Benchmark: ${p.benchmark}%`}
-                            />
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 

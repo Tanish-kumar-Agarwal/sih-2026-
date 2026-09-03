@@ -603,6 +603,9 @@ video {
 .left-1\/2 {
   left: 50%;
 }
+.left-2\.5 {
+  left: 0.625rem;
+}
 .left-3 {
   left: 0.75rem;
 }
@@ -623,6 +626,9 @@ video {
 }
 .top-1\/4 {
   top: 25%;
+}
+.top-2\.5 {
+  top: 0.625rem;
 }
 .z-10 {
   z-index: 10;
@@ -795,6 +801,9 @@ video {
 }
 .w-4 {
   width: 1rem;
+}
+.w-48 {
+  width: 12rem;
 }
 .w-5 {
   width: 1.25rem;
@@ -1089,6 +1098,9 @@ video {
 .border-rose-500\/20 {
   border-color: rgb(244 63 94 / 0.2);
 }
+.border-rose-500\/30 {
+  border-color: rgb(244 63 94 / 0.3);
+}
 .border-white\/10 {
   border-color: rgb(255 255 255 / 0.1);
 }
@@ -1241,6 +1253,9 @@ video {
 .p-1 {
   padding: 0.25rem;
 }
+.p-1\.5 {
+  padding: 0.375rem;
+}
 .p-2 {
   padding: 0.5rem;
 }
@@ -1350,6 +1365,12 @@ video {
 }
 .pl-10 {
   padding-left: 2.5rem;
+}
+.pl-8 {
+  padding-left: 2rem;
+}
+.pr-3 {
+  padding-right: 0.75rem;
 }
 .pr-4 {
   padding-right: 1rem;
@@ -2652,6 +2673,9 @@ main { padding: 80px 24px 100px; min-width: 0; }
 }
 .active\:cursor-grabbing:active {
   cursor: grabbing;
+}
+.disabled\:opacity-50:disabled {
+  opacity: 0.5;
 }
 .group:hover .group-hover\:scale-105 {
   --tw-scale-x: 1.05;

@@ -1,4 +1,7 @@
 {
+  "/admin/taxonomy/page": "app/admin/taxonomy/page.js",
+  "/student/passport/page": "app/student/passport/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
   "/student/competency/page": "app/student/competency/page.js",
   "/student/dashboard/page": "app/student/dashboard/page.js"
 }
