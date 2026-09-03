@@ -31,6 +31,8 @@ import {
   Compass,
   FileText
 } from "lucide-react";
+import SkillMasteryStudio from "@/components/SkillMasteryStudio";
+
 
 interface SkillNode {
   id: string;
@@ -106,6 +108,8 @@ export default function StudentCompetencyCenterPage() {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [domainFilter, setDomainFilter] = useState<"all" | "prog" | "data" | "sys">("all");
   const [activeViewMode, setActiveViewMode] = useState<"graph" | "matrix">("graph");
+  const [primaryTab, setPrimaryTab] = useState<"graph" | "studio">("graph");
+  const [studioSkillId, setStudioSkillId] = useState<string>("docker");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const currentRole = roleBlueprints[selectedRole] || roleBlueprints["Backend Developer"];
@@ -387,7 +391,7 @@ export default function StudentCompetencyCenterPage() {
           <nav className="nav" aria-label="Student">
             <Link href="/student/dashboard"><svg><use href="#i-grid"/></svg>Dashboard</Link>
             <Link href="/student/competency" aria-current="page"><svg><use href="#i-spark"/></svg>Competency center</Link>
-            <Link href="/student/competency"><svg><use href="#i-clip"/></svg>Assessments</Link>
+            <Link href="/student/assessments"><svg><use href="#i-clip"/></svg>Assessments & Labs</Link>
             <Link href="/student/opportunities"><svg><use href="#i-case"/></svg>Opportunities</Link>
             <Link href="/student/opportunities"><svg><use href="#i-book"/></svg>Internships</Link>
             <Link href="/student/profile"><svg><use href="#i-id"/></svg>Skill passport</Link>
@@ -452,6 +456,104 @@ export default function StudentCompetencyCenterPage() {
           <main style={{ padding: "80px 28px 60px", maxWidth: "1340px", margin: "0 auto" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
+              {/* PRIMARY TOP VIEW SELECTOR */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                  background: "#121318",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "16px",
+                  padding: "8px 12px",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.35)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setPrimaryTab("graph")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 18px",
+                      borderRadius: "10px",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: "none",
+                      background: primaryTab === "graph" ? "#2563eb" : "transparent",
+                      color: primaryTab === "graph" ? "#ffffff" : "#94a3b8",
+                      boxShadow: primaryTab === "graph" ? "0 4px 14px rgba(37,99,235,0.35)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <Boxes style={{ width: "15px", height: "15px" }} />
+                    <span>🕸️ Neo4j Topology & Blueprint Gap Matrix</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPrimaryTab("studio")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 18px",
+                      borderRadius: "10px",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      border: "none",
+                      background: primaryTab === "studio" ? "#2563eb" : "transparent",
+                      color: primaryTab === "studio" ? "#ffffff" : "#94a3b8",
+                      boxShadow: primaryTab === "studio" ? "0 4px 14px rgba(37,99,235,0.35)" : "none",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <Sparkles style={{ width: "15px", height: "15px", color: primaryTab === "studio" ? "#ffffff" : "#c084fc" }} />
+                    <span>🚀 Skill Mastery Studio & Accelerated Roadmap</span>
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        background: primaryTab === "studio" ? "rgba(255,255,255,0.2)" : "rgba(16, 185, 129, 0.2)",
+                        color: primaryTab === "studio" ? "#ffffff" : "#34d399",
+                        padding: "1px 6px",
+                        borderRadius: "999px",
+                        border: "1px solid rgba(16, 185, 129, 0.3)",
+                      }}
+                    >
+                      NEW
+                    </span>
+                  </button>
+                </div>
+
+                <div style={{ fontSize: "12px", color: "#64748b", paddingRight: "6px" }}>
+                  {primaryTab === "graph"
+                    ? "Diagnostic Topology & Role Blueprint Rubric"
+                    : "YouTube Lectures, Online Courses, Topic Quizzes & Starter Repos"}
+                </div>
+              </div>
+
+              {/* RENDER ACTIVE PRIMARY VIEW */}
+              {primaryTab === "studio" ? (
+                <SkillMasteryStudio
+                  initialSkillId={studioSkillId}
+                  onScoreUpdate={(skillId, newScore) => {
+                    if (skillsData[skillId]) {
+                      skillsData[skillId].score = newScore;
+                      skillsData[skillId].status = newScore >= 80 ? "mastered" : newScore >= 65 ? "developing" : "gap";
+                    }
+                    showToast(`Graph synchronized: ${skillId} updated to ${newScore}%`);
+                  }}
+                  onBackToGraph={() => setPrimaryTab("graph")}
+                />
+              ) : (
+                <>
               {/* Header Hero Banner with Role Blueprint Switcher */}
               <div
                 style={{
@@ -858,7 +960,28 @@ export default function StudentCompetencyCenterPage() {
                             <span style={{ color: "#f8fafc", fontWeight: 600 }}>Docker</span>
                             <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need Intermediate</span>
                           </div>
-                          <span style={{ color: "#fbbf24", fontWeight: 700 }}>54%</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ color: "#fbbf24", fontWeight: 700 }}>54%</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStudioSkillId("docker");
+                                setPrimaryTab("studio");
+                              }}
+                              style={{
+                                background: "rgba(37,99,235,0.15)",
+                                border: "1px solid rgba(37,99,235,0.3)",
+                                color: "#60a5fa",
+                                padding: "2px 8px",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Roadmap →
+                            </button>
+                          </div>
                         </div>
 
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
@@ -866,15 +989,57 @@ export default function StudentCompetencyCenterPage() {
                             <span style={{ color: "#f8fafc", fontWeight: 600 }}>Cloud AWS</span>
                             <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need ECS/S3</span>
                           </div>
-                          <span style={{ color: "#fbbf24", fontWeight: 700 }}>42%</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ color: "#fbbf24", fontWeight: 700 }}>42%</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStudioSkillId("cloud");
+                                setPrimaryTab("studio");
+                              }}
+                              style={{
+                                background: "rgba(37,99,235,0.15)",
+                                border: "1px solid rgba(37,99,235,0.3)",
+                                color: "#60a5fa",
+                                padding: "2px 8px",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Roadmap →
+                            </button>
+                          </div>
                         </div>
 
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 12px", borderRadius: "10px", fontSize: "12px" }}>
                           <div>
-                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>System Design</span>
-                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Needs Distributed Caching</span>
+                            <span style={{ color: "#f8fafc", fontWeight: 600 }}>Redis Caching</span>
+                            <span style={{ color: "#94a3b8", fontSize: "11px", marginLeft: "6px" }}>Basic → Need Distributed Locks</span>
                           </div>
-                          <span style={{ color: "#fbbf24", fontWeight: 700 }}>51%</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ color: "#fbbf24", fontWeight: 700 }}>48%</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStudioSkillId("redis");
+                                setPrimaryTab("studio");
+                              }}
+                              style={{
+                                background: "rgba(37,99,235,0.15)",
+                                border: "1px solid rgba(37,99,235,0.3)",
+                                color: "#60a5fa",
+                                padding: "2px 8px",
+                                borderRadius: "6px",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Roadmap →
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -884,14 +1049,18 @@ export default function StudentCompetencyCenterPage() {
                   {/* AI Remediation CTA */}
                   <button
                     type="button"
-                    onClick={() => showToast("AI Engine generating customized 2-week gap closure roadmap...")}
+                    onClick={() => {
+                      setStudioSkillId("docker");
+                      setPrimaryTab("studio");
+                      showToast("Switched to Skill Mastery Studio & Gap Remediation Roadmap");
+                    }}
                     style={{
                       width: "100%",
                       padding: "10px",
                       borderRadius: "10px",
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      color: "#f8fafc",
+                      background: "rgba(37, 99, 235, 0.2)",
+                      border: "1px solid rgba(59, 130, 246, 0.35)",
+                      color: "#60a5fa",
                       fontSize: "12.5px",
                       fontWeight: 600,
                       cursor: "pointer",
@@ -902,7 +1071,7 @@ export default function StudentCompetencyCenterPage() {
                     }}
                   >
                     <Sparkles style={{ width: "14px", height: "14px", color: "#a78bfa" }} />
-                    <span>Generate AI Gap Remediation Roadmap</span>
+                    <span>Launch AI Gap Remediation Roadmap</span>
                   </button>
                 </div>
 
@@ -1289,7 +1458,10 @@ export default function StudentCompetencyCenterPage() {
                     {/* Action Button */}
                     <button
                       type="button"
-                      onClick={() => showToast(`Executing action for ${currentSkill.name}...`)}
+                      onClick={() => {
+                        setStudioSkillId(selectedSkillId);
+                        setPrimaryTab("studio");
+                      }}
                       style={{
                         width: "100%",
                         padding: "10px",
@@ -1306,7 +1478,7 @@ export default function StudentCompetencyCenterPage() {
                         gap: "6px",
                       }}
                     >
-                      <span>Take Action on {currentSkill.name.split("&")[0]}</span>
+                      <span>Launch Roadmap & Studio for {currentSkill.name.split("&")[0]}</span>
                       <ArrowUpRight style={{ width: "15px", height: "15px" }} />
                     </button>
                   </div>
@@ -1502,6 +1674,8 @@ export default function StudentCompetencyCenterPage() {
                 </div>
 
               </div>
+              </>
+              )}
 
             </div>
           </main>

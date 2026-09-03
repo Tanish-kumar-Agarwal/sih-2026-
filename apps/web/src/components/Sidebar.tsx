@@ -34,9 +34,10 @@ export default function Sidebar({ role }: SidebarProps) {
     student: [
       { name: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
       { name: 'Competency Center', href: '/student/competency', icon: Network },
+      { name: 'Assessments & Labs', href: '/student/assessments', icon: FileCheck2 },
       { name: 'Skill Passport', href: '/student/passport', icon: Shield, highlight: true },
       { name: 'AI Matches', href: '/student/opportunities', icon: Sparkles },
-      { name: 'Applications', href: '/student/applications', icon: FileCheck2 },
+      { name: 'Applications', href: '/student/applications', icon: Briefcase },
       { name: 'Portfolio & Profile', href: '/student/profile', icon: User },
     ],
     industry: [
