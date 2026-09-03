@@ -134,6 +134,79 @@ async def seed_database():
             session.add(s_aarav)
             await session.flush()
 
+        # Student Persona B: Priya Patel (AYUSH & Diagnostics)
+        u_priya = await session.get(User, "usr-priya-patel")
+        if not u_priya:
+            u_priya = User(
+                id="usr-priya-patel",
+                email="priya.patel@ayush.gov.in",
+                hashed_password=get_password_hash("DevPriyaPass123!"),
+                role_id="student",
+                first_name="Priya",
+                last_name="Patel",
+                is_active=True,
+                is_verified=True
+            )
+            session.add(u_priya)
+            await session.flush()
+
+        s_priya = await session.get(Student, "stu-priya-patel")
+        if not s_priya:
+            s_priya = Student(
+                id="stu-priya-patel",
+                user_id="usr-priya-patel",
+                institution_id="inst-iit-delhi",
+                department_id="dept-iitd-cse",
+                enrollment_number="NIA-AYU-2022-019",
+                current_year=4,
+                graduation_year=2026,
+                cgpa=9.15,
+                bio="Ayurvedic clinical researcher specializing in Nadi Pariksha pulse diagnostics, herbal dravyaguna pharmacology, and integrative holistic medicine.",
+                github_url="https://github.com/priya-patel-ayush",
+                linkedin_url="https://linkedin.com/in/priyapatel-ayush",
+                portfolio_url="https://priyapatel.ayush.dev",
+                readiness_score=92.1
+            )
+            session.add(s_priya)
+            await session.flush()
+
+        # Student Persona C: Rohit Kumar (First Year / Blank Slate with 0 Competencies)
+        u_rohit = await session.get(User, "usr-rohit-kumar")
+        if not u_rohit:
+            u_rohit = User(
+                id="usr-rohit-kumar",
+                email="rohit.kumar@iitd.ac.in",
+                hashed_password=get_password_hash("DevRohitPass123!"),
+                role_id="student",
+                first_name="Rohit",
+                last_name="Kumar",
+                is_active=True,
+                is_verified=True
+            )
+            session.add(u_rohit)
+            await session.flush()
+
+        s_rohit = await session.get(Student, "stu-rohit-kumar")
+        if not s_rohit:
+            s_rohit = Student(
+                id="stu-rohit-kumar",
+                user_id="usr-rohit-kumar",
+                institution_id="inst-iit-delhi",
+                department_id="dept-iitd-cse",
+                enrollment_number="IITD-CS-2026-901",
+                current_year=1,
+                graduation_year=2028,
+                cgpa=8.0,
+                bio="First year computer science undergraduate student exploring foundational programming, algorithms, and systems engineering.",
+                github_url="https://github.com/rohit-kumar-dev",
+                linkedin_url="https://linkedin.com/in/rohitkumar-student",
+                portfolio_url=None,
+                readiness_score=0.0
+            )
+            session.add(s_rohit)
+            await session.flush()
+
+
         u_vikram = await session.get(User, "usr-vikram-malhotra")
         if not u_vikram:
             u_vikram = User(
@@ -602,6 +675,29 @@ async def seed_database():
                 ))
         await session.flush()
 
+        print("10b. Seeding student competencies for Priya Patel (AYUSH)...")
+        priya_comps = [
+            ("comp-nadi-pariksha", "Advanced", 91.0, 0.96, True),
+            ("comp-dravyaguna", "Advanced", 87.0, 0.90, True),
+            ("comp-panchakarma", "Intermediate", 82.0, 0.85, True),
+        ]
+        for comp_id, prof, score, conf, verified in priya_comps:
+            sc_id = f"sc-{comp_id}-priya"
+            existing = await session.get(StudentCompetency, sc_id)
+            if not existing:
+                session.add(StudentCompetency(
+                    id=sc_id,
+                    student_id="stu-priya-patel",
+                    competency_id=comp_id,
+                    proficiency_level=prof,
+                    score=score,
+                    confidence_score=conf,
+                    is_verified=verified,
+                    verified_at=datetime.now(timezone.utc) if verified else None
+                ))
+        await session.flush()
+
+
         # ----------------------------------------------------------------------
         # 9. Seed Projects, Live Opportunities & Evidence
         # ----------------------------------------------------------------------
@@ -627,6 +723,19 @@ async def seed_database():
                     is_verified=verified,
                     demonstrated_skills=skills
                 ))
+
+        priya_proj = await session.get(Project, "proj-priya-1")
+        if not priya_proj:
+            session.add(Project(
+                id="proj-priya-1",
+                student_id="stu-priya-patel",
+                title="Pulse Waveform Clinical Diagnostic Engine",
+                summary="Digital interpretation of radial artery pulse patterns according to Ayurvedic clinical principles.",
+                repo_url="https://github.com/priya-patel-ayush/nadi-pulse",
+                live_url="https://nadi-diagnostics.ayush.org",
+                is_verified=True,
+                demonstrated_skills=["Pulse Reading", "Dravyaguna Herbology", "Herbal Formulation"]
+            ))
         await session.flush()
 
         opp1 = await session.get(Opportunity, "opp-nextgen-001")

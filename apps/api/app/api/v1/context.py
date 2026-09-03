@@ -16,9 +16,27 @@ AVAILABLE_PERSONAS = [
         "id": "stu-aarav-sharma",
         "role": "student",
         "name": "Aarav Sharma",
-        "title": "Student Persona · B.Tech CS 3rd Year",
+        "title": "Student Persona · B.Tech CS 3rd Year (Software & AI)",
         "institution": "Indian Institute of Technology, Delhi",
         "avatar": "AS",
+        "default_route": "/student/dashboard"
+    },
+    {
+        "id": "stu-priya-patel",
+        "role": "student",
+        "name": "Priya Patel",
+        "title": "Student Persona · BAMS 4th Year (AYUSH & Diagnostics)",
+        "institution": "National Institute of Ayurveda, Jaipur",
+        "avatar": "PP",
+        "default_route": "/student/dashboard"
+    },
+    {
+        "id": "stu-rohit-kumar",
+        "role": "student",
+        "name": "Rohit Kumar",
+        "title": "Student Persona · B.Tech 1st Year (Blank Slate / 0 Competencies)",
+        "institution": "Indian Institute of Technology, Delhi",
+        "avatar": "RK",
         "default_route": "/student/dashboard"
     },
     {

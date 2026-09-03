@@ -32,6 +32,8 @@ import {
   FileText
 } from "lucide-react";
 import SkillMasteryStudio from "@/components/SkillMasteryStudio";
+import { useDevPersona } from "@/hooks/useDevPersona";
+import { useStudentCompetencies, useDeriveCompetencies } from "@/hooks/useStudentCompetencies";
 
 
 interface SkillNode {
@@ -101,8 +103,28 @@ export default function StudentCompetencyCenterPage() {
       status: "Developing",
       matchedRolesCount: 8,
       companies: "AWS, Freshworks, Paytm"
+    },
+    "Ayurvedic Clinical Specialist": {
+      score: 82,
+      hiringThreshold: 75,
+      delta: "+7 points above clinical accreditation bar",
+      status: "Clinically Certified",
+      matchedRolesCount: 11,
+      companies: "Kottakkal Arya Vaidya Sala, Patanjali Research, CCRAS"
+    },
+    "Yoga Therapy Consultant": {
+      score: 79,
+      hiringThreshold: 75,
+      delta: "+4 points above wellness threshold",
+      status: "Industry Ready",
+      matchedRolesCount: 7,
+      companies: "SVYASA, Art of Living, Ministry of AYUSH"
     }
   };
+
+  const { currentPersona } = useDevPersona();
+  const { data: competenciesData, isLoading: isLoadingCompetencies, refetch: refetchCompetencies } = useStudentCompetencies();
+  const deriveMutation = useDeriveCompetencies();
 
   const [selectedRole, setSelectedRole] = useState("Backend Developer");
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -112,11 +134,34 @@ export default function StudentCompetencyCenterPage() {
   const [studioSkillId, setStudioSkillId] = useState<string>("docker");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (currentPersona?.department?.toLowerCase().includes("ayur") || currentPersona?.department?.toLowerCase().includes("ayush")) {
+      setSelectedRole("Ayurvedic Clinical Specialist");
+    } else {
+      setSelectedRole("Backend Developer");
+    }
+  }, [currentPersona?.id, currentPersona?.department]);
+
   const currentRole = roleBlueprints[selectedRole] || roleBlueprints["Backend Developer"];
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleDerive = () => {
+    deriveMutation.mutate(
+      { include_projects: true },
+      {
+        onSuccess: (data) => {
+          showToast(`Derived ${data.derived_count} new & updated ${data.updated_count} competencies from demonstrated skills`);
+          refetchCompetencies();
+        },
+        onError: (err: any) => {
+          showToast(`Derivation error: ${err?.message || "Failed to derive"}`);
+        },
+      }
+    );
   };
 
   // Skill ontology dataset
@@ -300,15 +345,104 @@ export default function StudentCompetencyCenterPage() {
       recommendedAction: "Deploy Containerized Backend to AWS ECS",
       actionType: "project",
       actionGain: "+4 readiness"
+    },
+    nadi_pariksha: {
+      id: "nadi_pariksha",
+      name: "Nadi Pariksha Pulse Diagnostics",
+      group: "prog",
+      groupName: "Diagnostics",
+      category: "Ayurvedic Diagnostics",
+      status: "mastered",
+      gapWord: "None",
+      currentLevel: "Advanced",
+      requiredLevel: "Advanced",
+      score: 88,
+      benchmark: 75,
+      evText: "Clinical internship at CCRAS, 120+ patient pulse profiles analyzed.",
+      evidence: { projects: 2, certs: 1, assessments: 2, githubRepos: 0 },
+      recommendedAction: "Advanced Tri-dosha Pulse Rhythm Masterclass",
+      actionType: "lab",
+      actionGain: "+2 readiness"
+    },
+    panchakarma: {
+      id: "panchakarma",
+      name: "Panchakarma Protocol Planning",
+      group: "sys",
+      groupName: "Clinical Protocols",
+      category: "Therapeutic Procedures",
+      status: "mastered",
+      gapWord: "None",
+      currentLevel: "Advanced",
+      requiredLevel: "Advanced",
+      score: 85,
+      benchmark: 75,
+      evText: "Supervised clinical rotations, bio-purification protocol adherence.",
+      evidence: { projects: 2, certs: 1, assessments: 1, githubRepos: 0 },
+      recommendedAction: "Conduct Snehana-Swedana Clinical Case Study",
+      actionType: "project",
+      actionGain: "+3 readiness"
+    },
+    dravyaguna: {
+      id: "dravyaguna",
+      name: "Dravyaguna Pharmacology",
+      group: "data",
+      groupName: "Pharmacology",
+      category: "Herbology & Formulations",
+      status: "developing",
+      gapWord: "Small",
+      currentLevel: "Intermediate",
+      requiredLevel: "Advanced",
+      score: 74,
+      benchmark: 80,
+      evText: "Herbarium documentation and HPLC phyto-chemical analysis project.",
+      evidence: { projects: 1, certs: 0, assessments: 1, githubRepos: 0 },
+      recommendedAction: "Complete Polyherbal Synergism Proctored Exam",
+      actionType: "assessment",
+      actionGain: "+3 readiness"
+    },
+    yoga_therapy: {
+      id: "yoga_therapy",
+      name: "Yoga Therapy Clinical Prescription",
+      group: "sys",
+      groupName: "Holistic Therapy",
+      category: "Mind-Body Medicine",
+      status: "mastered",
+      gapWord: "None",
+      currentLevel: "Advanced",
+      requiredLevel: "Intermediate",
+      score: 82,
+      benchmark: 70,
+      evText: "Therapeutic yoga prescription for metabolic disorders cohort study.",
+      evidence: { projects: 1, certs: 1, assessments: 1, githubRepos: 0 },
+      recommendedAction: "Pranayama Biofeedback Clinical Evaluation",
+      actionType: "lab",
+      actionGain: "+1 readiness"
     }
   };
 
-  const [selectedSkillId, setSelectedSkillId] = useState<string>("pg");
-  const currentSkill = skillsData[selectedSkillId] || skillsData["pg"];
+  const isAyush = Boolean(
+    currentPersona?.department?.toLowerCase().includes("ayur") || 
+    currentPersona?.department?.toLowerCase().includes("ayush")
+  );
 
-  // Filter skills by domain
-  const skillList = Object.values(skillsData);
-  const filteredSkills = skillList.filter((s) => {
+  const defaultSkillId = isAyush ? "nadi_pariksha" : "pg";
+  const [selectedSkillId, setSelectedSkillId] = useState<string>(defaultSkillId);
+
+  useEffect(() => {
+    setSelectedSkillId(isAyush ? "nadi_pariksha" : "pg");
+  }, [isAyush]);
+
+  const currentSkill = skillsData[selectedSkillId] || skillsData[defaultSkillId] || Object.values(skillsData)[0];
+
+  // Filter skills by domain and persona isolation
+  const allSkills = Object.values(skillsData);
+  const personaSkills = currentPersona?.id === "stu-rohit-kumar" || competenciesData?.total === 0
+    ? []
+    : isAyush
+    ? allSkills.filter(s => ["nadi_pariksha", "panchakarma", "dravyaguna", "yoga_therapy"].includes(s.id))
+    : allSkills.filter(s => !["nadi_pariksha", "panchakarma", "dravyaguna", "yoga_therapy"].includes(s.id));
+
+  const filteredSkills = personaSkills.filter((s) => {
     if (domainFilter === "all") return true;
     return s.group === domainFilter;
   });
@@ -447,8 +581,8 @@ export default function StudentCompetencyCenterPage() {
                 <span className="dot" aria-hidden="true" />
               </button>
 
-              <Link href="/student/profile" className="avatar-sm" aria-label="Signed in as Aarav Sharma">
-                AS
+              <Link href="/student/profile" className="avatar-sm" aria-label={`Signed in as ${currentPersona?.name || 'Aarav Sharma'}`}>
+                {currentPersona ? `${currentPersona.firstName[0]}${currentPersona.lastName[0]}` : "AS"}
               </Link>
             </div>
           </header>
@@ -678,10 +812,11 @@ export default function StudentCompetencyCenterPage() {
                     )}
                   </div>
 
-                  {/* Sync Button */}
+                  {/* Derive Competencies from Projects Button */}
                   <button
                     type="button"
-                    onClick={() => showToast("Synchronizing graph nodes with live GitHub & institutional ledger...")}
+                    onClick={handleDerive}
+                    disabled={deriveMutation.isPending}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -689,16 +824,17 @@ export default function StudentCompetencyCenterPage() {
                       height: "38px",
                       padding: "0 14px",
                       borderRadius: "12px",
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
+                      background: "rgba(37, 99, 235, 0.15)",
+                      border: "1px solid rgba(59, 130, 246, 0.35)",
+                      color: "#93c5fd",
                       fontSize: "13px",
-                      fontWeight: 500,
-                      cursor: "pointer",
+                      fontWeight: 600,
+                      cursor: deriveMutation.isPending ? "wait" : "pointer",
+                      boxShadow: "0 2px 8px rgba(37, 99, 235, 0.2)",
                     }}
                   >
-                    <RefreshCw style={{ width: "14px", height: "14px" }} />
-                    <span>Sync Graph</span>
+                    <RefreshCw style={{ width: "14px", height: "14px", animation: deriveMutation.isPending ? "spin 1s linear infinite" : "none" }} />
+                    <span>{deriveMutation.isPending ? "Deriving..." : "Derive Competencies"}</span>
                   </button>
 
                   {/* Add Evidence CTA */}
@@ -726,6 +862,56 @@ export default function StudentCompetencyCenterPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Truthful Empty State Banner for students with 0 competencies (e.g. Rohit Kumar) */}
+              {filteredSkills.length === 0 && (
+                <div
+                  style={{
+                    background: "rgba(245, 158, 11, 0.08)",
+                    border: "1px solid rgba(245, 158, 11, 0.25)",
+                    borderRadius: "16px",
+                    padding: "20px 24px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "16px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    <AlertCircle style={{ width: "24px", height: "24px", color: "#fbbf24", flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#f8fafc" }}>
+                        Truthful Empty State: 0 Verified Competencies Baseline
+                      </div>
+                      <div style={{ fontSize: "12.5px", color: "#94a3b8", marginTop: "2px" }}>
+                        Active Profile: <b>{currentPersona?.name || "Student"}</b> ({currentPersona?.department || "1st Year"}). No competencies have been derived yet from project repositories.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDerive}
+                    disabled={deriveMutation.isPending}
+                    style={{
+                      background: "#f59e0b",
+                      color: "#0f172a",
+                      border: "none",
+                      padding: "8px 18px",
+                      borderRadius: "10px",
+                      fontSize: "12.5px",
+                      fontWeight: 700,
+                      cursor: deriveMutation.isPending ? "wait" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Zap style={{ width: "14px", height: "14px" }} />
+                    <span>{deriveMutation.isPending ? "Deriving..." : "Derive Baseline Competencies"}</span>
+                  </button>
+                </div>
+              )}
 
               {/* TIER 1: Competency Mastery & Hiring Distance Vector (12 Cols Bento) */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "20px" }}>

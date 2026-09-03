@@ -16,6 +16,7 @@ from app.api.v1.industry import router as industry_router
 from app.api.v1.opportunities import router as opportunities_router
 from app.api.v1.competencies import router as competencies_router
 from app.api.v1.skills import router as skills_router
+from app.api.v1.roles import router as roles_router
 from app.api.v1.assessments import router as assessments_router
 from app.api.v1.evidence import router as evidence_router
 from app.api.v1.matching import router as matching_router
@@ -101,6 +102,7 @@ api_v1_routers = [
     opportunities_router,
     competencies_router,
     skills_router,
+    roles_router,
     assessments_router,
     evidence_router,
     matching_router,

@@ -176,3 +176,75 @@ class CompetencyAggregationResponseDTO(BaseModel):
     unresolved_skills: List[str]
     total_skills_evaluated: int
 
+# ------------------------------------------------------------------------------
+# Student Competency & Graph Contracts (Step 3)
+# ------------------------------------------------------------------------------
+
+class StudentCompetencySummaryDTO(BaseModel):
+    id: str
+    competency_id: str
+    competency_name: str
+    competency_code: str
+    competency_slug: Optional[str] = None
+    category: Optional[str] = None
+    domain_code: Optional[str] = None
+    difficulty_level: str
+    proficiency_level: str
+    proficiency_numeric: int
+    score: float
+    confidence_score: float
+    is_verified: bool
+    verified_at: Optional[str] = None
+    supporting_skills_count: int = 0
+    updated_at: Optional[str] = None
+
+class StudentCompetencyDetailDTO(StudentCompetencySummaryDTO):
+    description: Optional[str] = None
+    supporting_skills: List[SkillDTO] = []
+    prerequisites: List[CompetencyRelationshipDTO] = []
+    complements: List[CompetencyRelationshipDTO] = []
+    demonstrated_in_projects: List[str] = []
+
+class StudentCompetenciesPaginatedDTO(BaseModel):
+    items: List[StudentCompetencySummaryDTO]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+class StudentCompetencyDeriveRequestDTO(BaseModel):
+    skills: Optional[List[SkillProficiencyInputDTO]] = None
+    include_projects: bool = True
+
+class StudentCompetencyDeriveResponseDTO(BaseModel):
+    student_id: str
+    derived_count: int
+    updated_count: int
+    total_competencies: int
+    competencies: List[StudentCompetencySummaryDTO]
+    unresolved_skills: List[str] = []
+
+class CompetencyGraphNodeDTO(BaseModel):
+    id: str
+    label: str
+    name: str
+    type: str  # "domain", "competency", "skill"
+    category: Optional[str] = None
+    proficiency: Optional[str] = None
+    score: Optional[float] = None
+    is_verified: Optional[bool] = None
+
+class CompetencyGraphEdgeDTO(BaseModel):
+    id: str
+    source: str
+    target: str
+    relationship: str  # "BELONGS_TO", "HAS_SKILL", "PREREQUISITE_FOR", "COMPLEMENTS"
+    weight: float = 1.0
+
+class CompetencyGraphResponseDTO(BaseModel):
+    nodes: List[CompetencyGraphNodeDTO]
+    edges: List[CompetencyGraphEdgeDTO]
+    total_nodes: int
+    total_edges: int
+
+

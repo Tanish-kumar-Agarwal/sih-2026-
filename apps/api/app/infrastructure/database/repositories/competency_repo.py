@@ -311,3 +311,17 @@ class CompetencyRepository(BaseRepository[Competency]):
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
+    async def get_all_relationships(self) -> List[CompetencyRelationship]:
+        """Fetch all active cross-competency relationships."""
+        stmt = (
+            select(CompetencyRelationship)
+            .where(CompetencyRelationship.status == "ACTIVE")
+            .options(
+                selectinload(CompetencyRelationship.source_competency),
+                selectinload(CompetencyRelationship.target_competency)
+            )
+        )
+        res = await self.db.execute(stmt)
+        return list(res.scalars().all())
+
+

@@ -30,6 +30,25 @@ export function useCurrentDevPersona() {
   });
 }
 
+export function useDevPersona() {
+  const { data: currentPersona, isLoading } = useCurrentDevPersona();
+  const nameParts = (currentPersona?.name || "").split(" ");
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
+
+  return {
+    currentPersona: currentPersona
+      ? {
+          ...currentPersona,
+          firstName,
+          lastName,
+          department: currentPersona.title || "Computer Science",
+        }
+      : undefined,
+    isLoading,
+  };
+}
+
 export function useSwitchDevPersona() {
   const queryClient = useQueryClient();
 
@@ -43,6 +62,8 @@ export function useSwitchDevPersona() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["current-dev-persona"] });
       queryClient.invalidateQueries({ queryKey: ["student-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["student-competencies"] });
+      queryClient.invalidateQueries({ queryKey: ["student-competency-graph"] });
       queryClient.invalidateQueries({ queryKey: ["health"] });
     },
   });
