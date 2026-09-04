@@ -39,6 +39,20 @@ class StudentRepository(BaseRepository[Student]):
         res = await self.db.execute(stmt)
         return res.scalars().first()
 
+    async def get_by_id_or_user_id(self, identifier: str) -> Optional[Student]:
+        """Fetch student record resolving by either student_id or user_id."""
+        stmt = (
+            select(Student)
+            .where(or_(Student.id == identifier, Student.user_id == identifier))
+            .options(
+                selectinload(Student.user),
+                selectinload(Student.institution),
+                selectinload(Student.department),
+            )
+        )
+        res = await self.db.execute(stmt)
+        return res.scalars().first()
+
     async def list_students_with_details(self, limit: int = 50, offset: int = 0) -> List[Student]:
         stmt = (
             select(Student)

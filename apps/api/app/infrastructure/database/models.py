@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Boolean, Text, Integer, Float, Date, DateTime,
-    ForeignKey, Table, JSON, UniqueConstraint, Index, CheckConstraint
+    ForeignKey, Table, JSON, UniqueConstraint, Index, CheckConstraint, BigInteger
 )
 from sqlalchemy.orm import relationship
 from app.infrastructure.database.session import Base
@@ -437,17 +437,148 @@ class Evidence(Base):
     __tablename__ = "evidence"
     id = Column(String(36), primary_key=True, default=gen_uuid)
     student_id = Column(String(36), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
-    entity_type = Column(String(50), nullable=False)  # 'PROJECT', 'ASSESSMENT', 'INTERNSHIP', 'CERTIFICATION'
-    entity_id = Column(String(36), nullable=False, index=True)
+    entity_type = Column(String(50), nullable=True)  # 'PROJECT', 'ASSESSMENT', 'INTERNSHIP', 'CERTIFICATION'
+    entity_id = Column(String(36), nullable=True, index=True)
+    evidence_type = Column(String(50), nullable=False, default="PROJECT", index=True)  # PROJECT, INTERNSHIP, etc.
+    source_type = Column(String(50), nullable=False, default="REPOSITORY", index=True)  # REPOSITORY, DOCUMENT, URL, etc.
     title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
     uri = Column(Text, nullable=True)
+    source_reference = Column(String(255), nullable=True)
     sha256_hash = Column(String(128), nullable=True)
     trust_score = Column(Float, default=0.5)
-    verification_status = Column(String(50), default="PENDING")  # 'PENDING', 'VERIFIED', 'REJECTED'
+    confidence_score = Column(Float, default=1.0)
+    evidence_strength = Column(String(50), default="STRONG")  # WEAK, MODERATE, STRONG, VERY_STRONG
+    processing_status = Column(String(50), default="COMPLETED", index=True)  # UPLOADED, STORED, PROCESSING, COMPLETED, etc.
+    verification_status = Column(String(50), default="PENDING", index=True)  # PENDING, VERIFIED, REJECTED, EXPIRED, REVOKED
+    domain_code = Column(String(50), default="GENERAL")
     created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
 
     student = relationship("Student", back_populates="evidence_items")
+    provenance = relationship("EvidenceProvenance", back_populates="evidence", uselist=False, cascade="all, delete-orphan")
+    claims = relationship("EvidenceClaim", back_populates="evidence", cascade="all, delete-orphan")
+    competency_mappings = relationship("EvidenceCompetency", back_populates="evidence", cascade="all, delete-orphan")
+    skill_mappings = relationship("EvidenceSkill", back_populates="evidence", cascade="all, delete-orphan")
     verifications = relationship("EvidenceVerification", back_populates="evidence", cascade="all, delete-orphan")
+    artifacts = relationship("EvidenceArtifact", back_populates="evidence", cascade="all, delete-orphan")
+    github_snapshots = relationship("GitHubRepositorySnapshot", back_populates="evidence", cascade="all, delete-orphan")
+
+class EvidenceArtifact(Base):
+    __tablename__ = "evidence_artifacts"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    evidence_id = Column(String(36), ForeignKey("evidence.id", ondelete="CASCADE"), nullable=False, index=True)
+    original_filename = Column(String(255), nullable=False)
+    normalized_filename = Column(String(255), nullable=False)
+    mime_type = Column(String(100), nullable=False)
+    detected_content_type = Column(String(100), nullable=True)
+    file_size = Column(Integer, nullable=False)
+    sha256_checksum = Column(String(64), nullable=False, index=True)
+    storage_provider = Column(String(50), default="LOCAL", nullable=False)
+    storage_key = Column(String(500), nullable=False)
+    retention_state = Column(String(50), default="ACTIVE", nullable=False)  # 'ACTIVE', 'ARCHIVED', 'DELETED'
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+
+    evidence = relationship("Evidence", back_populates="artifacts")
+    extractions = relationship("EvidenceExtraction", back_populates="artifact", cascade="all, delete-orphan")
+
+class EvidenceExtraction(Base):
+    __tablename__ = "evidence_extractions"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    artifact_id = Column(String(36), ForeignKey("evidence_artifacts.id", ondelete="CASCADE"), nullable=False, index=True)
+    extractor_name = Column(String(100), nullable=False)
+    extractor_version = Column(String(50), nullable=False)
+    extraction_status = Column(String(50), default="COMPLETED", nullable=False)  # 'COMPLETED', 'EMPTY', 'FAILED'
+    raw_text = Column(Text, nullable=True)
+    page_count = Column(Integer, default=1)
+    extracted_metadata = Column(JSON, default=dict)
+    observed_facts = Column(JSON, default=list)
+    error_message = Column(Text, nullable=True)
+    extracted_at = Column(DateTime(timezone=True), default=utc_now)
+
+    artifact = relationship("EvidenceArtifact", back_populates="extractions")
+
+class EvidenceProvenance(Base):
+    __tablename__ = "evidence_provenance"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    evidence_id = Column(String(36), ForeignKey("evidence.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    source_type = Column(String(50), nullable=False)
+    source_url = Column(Text, nullable=True)
+    source_reference = Column(String(255), nullable=True)
+    collection_method = Column(String(50), default="SYSTEM_SYNC")
+    extraction_method = Column(String(50), nullable=True)
+    analysis_method = Column(String(50), nullable=True)
+    algorithm_version = Column(String(50), default="v1.0.0")
+    observed_at = Column(DateTime(timezone=True), default=utc_now)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+
+    evidence = relationship("Evidence", back_populates="provenance")
+
+class EvidenceClaim(Base):
+    __tablename__ = "evidence_claims"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    evidence_id = Column(String(36), ForeignKey("evidence.id", ondelete="CASCADE"), nullable=False, index=True)
+    claim_type = Column(String(50), nullable=False)
+    observed_fact = Column(Text, nullable=False)
+    claim_statement = Column(Text, nullable=False)
+    confidence = Column(Float, default=1.0)
+    status = Column(String(20), default="ACTIVE")
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+
+    evidence = relationship("Evidence", back_populates="claims")
+
+class EvidenceCompetency(Base):
+    __tablename__ = "evidence_competencies"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    evidence_id = Column(String(36), ForeignKey("evidence.id", ondelete="CASCADE"), nullable=False, index=True)
+    competency_id = Column(String(36), ForeignKey("competencies.id", ondelete="CASCADE"), nullable=False, index=True)
+    claim_id = Column(String(36), ForeignKey("evidence_claims.id", ondelete="SET NULL"), nullable=True, index=True)
+    mapping_source = Column(String(50), default="DIRECT_ASSERTION")
+    confidence = Column(Float, default=1.0)
+    weight = Column(Float, default=1.0)
+    
+    # Phase 3 Step 4: First-Class Mapping & Verification Lifecycle
+    mapping_status = Column(String(50), default="PROPOSED", nullable=False, index=True)
+    mapping_method = Column(String(50), default="DIRECT_SKILL_MATCH", nullable=False)
+    confidence_reason = Column(Text, nullable=True)
+    evidence_strength = Column(String(50), default="MODERATE", nullable=False)
+    skill_id = Column(String(36), ForeignKey("skills.id", ondelete="SET NULL"), nullable=True, index=True)
+    source_location = Column(String(255), nullable=True)
+    algorithm_version = Column(String(50), default="v1.0.0", nullable=False)
+    reviewed_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    review_reason = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("evidence_id", "competency_id", name="uq_evidence_competency"),
+    )
+
+    evidence = relationship("Evidence", back_populates="competency_mappings")
+    competency = relationship("Competency")
+    claim = relationship("EvidenceClaim")
+    skill = relationship("Skill")
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+
+class EvidenceSkill(Base):
+    __tablename__ = "evidence_skills"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    evidence_id = Column(String(36), ForeignKey("evidence.id", ondelete="CASCADE"), nullable=False, index=True)
+    skill_id = Column(String(36), ForeignKey("skills.id", ondelete="CASCADE"), nullable=False, index=True)
+    claim_id = Column(String(36), ForeignKey("evidence_claims.id", ondelete="SET NULL"), nullable=True, index=True)
+    relevance_score = Column(Float, default=1.0)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("evidence_id", "skill_id", name="uq_evidence_skill"),
+    )
+
+    evidence = relationship("Evidence", back_populates="skill_mappings")
+    skill = relationship("Skill")
+    claim = relationship("EvidenceClaim")
 
 class EvidenceVerification(Base):
     __tablename__ = "evidence_verifications"
@@ -461,6 +592,7 @@ class EvidenceVerification(Base):
     verified_at = Column(DateTime(timezone=True), default=utc_now)
 
     evidence = relationship("Evidence", back_populates="verifications")
+    verifier = relationship("User")
 
 # ------------------------------------------------------------------------------
 # 6. Opportunities & Industry Blueprints
@@ -603,3 +735,150 @@ class AuditLog(Base):
     resource_id = Column(String(100), nullable=True)
     details = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=utc_now, index=True)
+
+# ------------------------------------------------------------------------------
+# 10. GitHub Repository Intelligence (Digital Contribution Evidence)
+# ------------------------------------------------------------------------------
+
+class GitHubRepository(Base):
+    __tablename__ = "github_repositories"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    provider = Column(String(50), default="GITHUB", nullable=False)
+    external_repo_id = Column(String(50), nullable=True, index=True)
+    owner = Column(String(150), nullable=False)
+    name = Column(String(150), nullable=False)
+    full_name = Column(String(300), nullable=False, index=True)
+    canonical_url = Column(String(500), nullable=False, unique=True)
+    default_branch = Column(String(100), default="main", nullable=False)
+    is_fork = Column(Boolean, default=False, nullable=False)
+    parent_full_name = Column(String(300), nullable=True)
+    parent_url = Column(String(500), nullable=True)
+    stars_count = Column(Integer, default=0, nullable=False)
+    forks_count = Column(Integer, default=0, nullable=False)
+    open_issues_count = Column(Integer, default=0, nullable=False)
+    license_spdx = Column(String(100), nullable=True)
+    topics = Column(JSON, default=list)
+    repo_created_at = Column(DateTime(timezone=True), nullable=True)
+    repo_updated_at = Column(DateTime(timezone=True), nullable=True)
+    repo_pushed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    snapshots = relationship("GitHubRepositorySnapshot", back_populates="repository", cascade="all, delete-orphan")
+
+class GitHubRepositorySnapshot(Base):
+    __tablename__ = "github_repository_snapshots"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    repository_id = Column(String(36), ForeignKey("github_repositories.id", ondelete="CASCADE"), nullable=False, index=True)
+    evidence_id = Column(String(36), ForeignKey("evidence.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(String(36), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    commit_sha = Column(String(40), nullable=True)
+    snapshot_status = Column(String(50), default="COMPLETED", nullable=False)  # 'COMPLETED', 'PARTIAL', 'RATE_LIMITED', 'FAILED', 'NOT_FOUND'
+    analysis_limits_reached = Column(Boolean, default=False, nullable=False)
+    summary_metrics = Column(JSON, default=dict)
+    error_message = Column(Text, nullable=True)
+    fetched_at = Column(DateTime(timezone=True), default=utc_now)
+
+    repository = relationship("GitHubRepository", back_populates="snapshots")
+    evidence = relationship("Evidence", back_populates="github_snapshots")
+    student = relationship("Student")
+    languages = relationship("GitHubLanguage", back_populates="snapshot", cascade="all, delete-orphan")
+    dependencies = relationship("GitHubDependency", back_populates="snapshot", cascade="all, delete-orphan")
+    contributors = relationship("GitHubContributor", back_populates="snapshot", cascade="all, delete-orphan")
+    commits = relationship("GitHubCommit", back_populates="snapshot", cascade="all, delete-orphan")
+    pull_requests = relationship("GitHubPullRequest", back_populates="snapshot", cascade="all, delete-orphan")
+    code_areas = relationship("GitHubCodeArea", back_populates="snapshot", cascade="all, delete-orphan")
+    similarity_indicators = relationship("GitHubSimilarityIndicator", back_populates="snapshot", cascade="all, delete-orphan")
+
+class GitHubLanguage(Base):
+    __tablename__ = "github_languages"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    snapshot_id = Column(String(36), ForeignKey("github_repository_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
+    language = Column(String(100), nullable=False)
+    byte_count = Column(BigInteger, default=0, nullable=False)
+    percentage = Column(Float, default=0.0, nullable=False)
+
+    snapshot = relationship("GitHubRepositorySnapshot", back_populates="languages")
+
+class GitHubDependency(Base):
+    __tablename__ = "github_dependencies"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    snapshot_id = Column(String(36), ForeignKey("github_repository_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
+    ecosystem = Column(String(50), nullable=False)  # 'npm', 'pip', 'maven', 'cargo', 'go'
+    package_name = Column(String(200), nullable=False, index=True)
+    declared_version = Column(String(100), nullable=True)
+    manifest_path = Column(String(255), nullable=False)
+
+    snapshot = relationship("GitHubRepositorySnapshot", back_populates="dependencies")
+
+class GitHubContributor(Base):
+    __tablename__ = "github_contributors"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    snapshot_id = Column(String(36), ForeignKey("github_repository_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
+    username = Column(String(150), nullable=True, index=True)
+    external_user_id = Column(BigInteger, nullable=True)
+    commit_count = Column(Integer, default=0, nullable=False)
+    additions = Column(Integer, default=0, nullable=False)
+    deletions = Column(Integer, default=0, nullable=False)
+    contribution_ratio = Column(Float, default=0.0, nullable=False)
+    is_student_linked = Column(Boolean, default=False, nullable=False)
+    identity_confidence = Column(String(20), default="UNKNOWN", nullable=False)  # 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'
+
+    snapshot = relationship("GitHubRepositorySnapshot", back_populates="contributors")
+
+class GitHubCommit(Base):
+    __tablename__ = "github_commits"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    snapshot_id = Column(String(36), ForeignKey("github_repository_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
+    sha = Column(String(40), nullable=False, index=True)
+    author_name = Column(String(200), nullable=False)
+    author_email = Column(String(255), nullable=False)
+    commit_date = Column(DateTime(timezone=True), nullable=False)
+    message = Column(Text, nullable=True)
+    additions = Column(Integer, default=0, nullable=False)
+    deletions = Column(Integer, default=0, nullable=False)
+    is_student_attributed = Column(Boolean, default=False, nullable=False)
+    identity_confidence = Column(String(20), default="UNKNOWN", nullable=False)
+
+    snapshot = relationship("GitHubRepositorySnapshot", back_populates="commits")
+
+class GitHubPullRequest(Base):
+    __tablename__ = "github_pull_requests"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    snapshot_id = Column(String(36), ForeignKey("github_repository_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
+    pr_number = Column(Integer, nullable=False)
+    title = Column(String(300), nullable=False)
+    state = Column(String(50), default="open", nullable=False)
+    author_username = Column(String(150), nullable=False)
+    is_merged = Column(Boolean, default=False, nullable=False)
+    merged_at = Column(DateTime(timezone=True), nullable=True)
+    additions = Column(Integer, default=0, nullable=False)
+    deletions = Column(Integer, default=0, nullable=False)
+    changed_files = Column(Integer, default=0, nullable=False)
+
+    snapshot = relationship("GitHubRepositorySnapshot", back_populates="pull_requests")
+
+class GitHubCodeArea(Base):
+    __tablename__ = "github_code_areas"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    snapshot_id = Column(String(36), ForeignKey("github_repository_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
+    area_name = Column(String(100), nullable=False)  # 'backend', 'frontend', 'database', 'api', 'tests', 'documentation', 'infrastructure'
+    files_count = Column(Integer, default=0, nullable=False)
+    commits_count = Column(Integer, default=0, nullable=False)
+    student_commits_count = Column(Integer, default=0, nullable=False)
+
+    snapshot = relationship("GitHubRepositorySnapshot", back_populates="code_areas")
+
+class GitHubSimilarityIndicator(Base):
+    __tablename__ = "github_similarity_indicators"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    snapshot_id = Column(String(36), ForeignKey("github_repository_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
+    is_fork = Column(Boolean, default=False, nullable=False)
+    upstream_repo = Column(String(300), nullable=True)
+    fork_divergence_level = Column(String(50), default="NONE", nullable=False)  # 'HIGH', 'MEDIUM', 'LOW', 'NONE'
+    file_path_overlap_ratio = Column(Float, default=0.0, nullable=False)
+    readme_similarity_level = Column(String(50), default="UNKNOWN", nullable=False)
+    indicator_summary = Column(Text, nullable=True)
+    confidence = Column(String(20), default="MEDIUM", nullable=False)
+
+    snapshot = relationship("GitHubRepositorySnapshot", back_populates="similarity_indicators")

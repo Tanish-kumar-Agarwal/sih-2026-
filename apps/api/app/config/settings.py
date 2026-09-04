@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Optional
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -38,6 +38,24 @@ class Settings(BaseSettings):
     # AI & Gemini
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "gemini")
+
+    # Storage & Evidence Ingestion
+    MAX_UPLOAD_SIZE_BYTES: int = 15 * 1024 * 1024  # 15 MB
+    STORAGE_LOCAL_ROOT: str = os.getenv("STORAGE_LOCAL_ROOT", os.path.join(os.getcwd(), "storage"))
+    ALLOWED_UPLOAD_MIME_TYPES: List[str] = [
+        "application/pdf",
+        "text/plain",
+        "application/json",
+        "image/png",
+        "image/jpeg"
+    ]
+
+    # GitHub Repository Intelligence
+    GITHUB_API_BASE_URL: str = os.getenv("GITHUB_API_BASE_URL", "https://api.github.com")
+    GITHUB_TOKEN: Optional[str] = os.getenv("GITHUB_TOKEN", None)
+    GITHUB_MAX_COMMITS_ANALYZED: int = int(os.getenv("GITHUB_MAX_COMMITS_ANALYZED", "100"))
+    GITHUB_MAX_PRS_ANALYZED: int = int(os.getenv("GITHUB_MAX_PRS_ANALYZED", "50"))
+    GITHUB_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GITHUB_REQUEST_TIMEOUT_SECONDS", "10.0"))
 
     # CORS Origins (Explicit allowed client origins)
     CORS_ORIGINS: List[str] = [

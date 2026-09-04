@@ -64,4 +64,31 @@ export const apiClient = {
   put: <T>(endpoint: string, data?: any, options?: RequestInit) =>
     request<T>(endpoint, { method: "PUT", body: data ? JSON.stringify(data) : undefined, ...options }),
   delete: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { method: "DELETE", ...options }),
+  upload: async <T>(endpoint: string, formData: FormData, options?: RequestInit): Promise<T> => {
+    const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+    const headers = new Headers(options?.headers || {});
+    headers.set("Accept", "application/json");
+    const personaId = getActiveDevPersonaId();
+    if (personaId) {
+      headers.set("X-Dev-Persona-Id", personaId);
+    }
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      headers,
+      ...options,
+    });
+    if (!response.ok) {
+      let errorData: any;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = await response.text();
+      }
+      const message = (errorData && (errorData.detail || errorData.message)) || `Upload failed with status ${response.status}`;
+      throw new ApiError(message, response.status, errorData);
+    }
+    return response.json();
+  },
 };
+

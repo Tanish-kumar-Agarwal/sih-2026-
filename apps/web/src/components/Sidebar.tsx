@@ -20,7 +20,8 @@ import {
   BookOpen,
   Settings,
   Shield,
-  FileText
+  FileText,
+  Upload
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +35,7 @@ export default function Sidebar({ role }: SidebarProps) {
     student: [
       { name: 'Dashboard', href: '/student/dashboard', icon: LayoutDashboard },
       { name: 'Competency Center', href: '/student/competency', icon: Network },
+      { name: 'Upload Evidence', href: '/onboarding', icon: Upload },
       { name: 'Assessments & Labs', href: '/student/assessments', icon: FileCheck2 },
       { name: 'Skill Passport', href: '/student/passport', icon: Shield, highlight: true },
       { name: 'AI Matches', href: '/student/opportunities', icon: Sparkles },

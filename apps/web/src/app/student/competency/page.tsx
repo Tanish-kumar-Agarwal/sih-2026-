@@ -29,9 +29,12 @@ import {
   Boxes,
   Plus,
   Compass,
-  FileText
+  FileText,
+  Upload
 } from "lucide-react";
 import SkillMasteryStudio from "@/components/SkillMasteryStudio";
+import EvidenceUploadModal from "@/components/EvidenceUploadModal";
+import GitHubIngestionModal from "@/components/GitHubIngestionModal";
 import { useDevPersona } from "@/hooks/useDevPersona";
 import {
   useStudentCompetencies,
@@ -41,6 +44,11 @@ import {
   useCanonicalRoles,
   useRoleRequirements,
 } from "@/hooks/useStudentCompetencies";
+import {
+  useCompetencyEvidence,
+  useTriggerEvidenceMapping,
+  useVerifyEvidenceMapping,
+} from "@/hooks/useCompetencyEvidence";
 
 
 interface SkillNode {
@@ -144,11 +152,15 @@ export default function StudentCompetencyCenterPage() {
   const [primaryTab, setPrimaryTab] = useState<"graph" | "studio">("graph");
   const [studioSkillId, setStudioSkillId] = useState<string>("docker");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
 
   const [selectedCompetencyId, setSelectedCompetencyId] = useState<string>("");
   const { data: competencyDetail } = useStudentCompetencyDetail(selectedCompetencyId || undefined);
   const { data: graphTopology } = useStudentCompetencyGraph();
   const { data: activeRoleDetail } = useRoleRequirements(selectedRole);
+  const { data: evidenceProfile, isLoading: isEvidenceLoading } = useCompetencyEvidence(selectedCompetencyId || undefined);
+  const verifyMappingMutation = useVerifyEvidenceMapping();
 
   useEffect(() => {
     if (currentPersona?.department?.toLowerCase().includes("ayur") || currentPersona?.department?.toLowerCase().includes("ayush")) {
@@ -549,6 +561,26 @@ export default function StudentCompetencyCenterPage() {
         </div>
       )}
 
+      {/* Upload Evidence Modal */}
+      <EvidenceUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onSuccess={() => {
+          refetchCompetencies();
+          showToast("Evidence artifact ingested, extracted, and persisted!");
+        }}
+      />
+
+      {/* GitHub Repository Intelligence Modal */}
+      <GitHubIngestionModal
+        isOpen={isGitHubModalOpen}
+        onClose={() => setIsGitHubModalOpen(false)}
+        onSuccess={(res) => {
+          refetchCompetencies();
+          showToast(`Repository ${res.repository.full_name} analyzed! ${res.snapshot.student_commit_count} student commits attributed.`);
+        }}
+      />
+
       {/* SVG Icon Symbols */}
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
         <defs>
@@ -722,12 +754,63 @@ export default function StudentCompetencyCenterPage() {
                   </button>
                 </div>
 
-                <div style={{ fontSize: "12px", color: "#64748b", paddingRight: "6px" }}>
-                  {primaryTab === "graph"
-                    ? "Diagnostic Topology & Role Blueprint Rubric"
-                    : "YouTube Lectures, Online Courses, Topic Quizzes & Starter Repos"}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ fontSize: "12px", color: "#64748b", paddingRight: "6px" }}>
+                    {primaryTab === "graph"
+                      ? "Diagnostic Topology & Role Blueprint Rubric"
+                      : "YouTube Lectures, Online Courses, Topic Quizzes & Starter Repos"}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsUploadModalOpen(true)}
+                    id="upload-evidence-btn"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      padding: "7px 15px",
+                      borderRadius: "10px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "1px solid rgba(99, 102, 241, 0.4)",
+                      background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)",
+                      color: "#c7d2fe",
+                      boxShadow: "0 2px 10px rgba(99, 102, 241, 0.2)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <Upload style={{ width: "14px", height: "14px", color: "#818cf8" }} />
+                    <span>Upload Evidence</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsGitHubModalOpen(true)}
+                    id="analyze-github-btn"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      padding: "7px 15px",
+                      borderRadius: "10px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "1px solid rgba(139, 92, 246, 0.4)",
+                      background: "linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)",
+                      color: "#ddd6fe",
+                      boxShadow: "0 2px 10px rgba(139, 92, 246, 0.2)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <Code2 style={{ width: "14px", height: "14px", color: "#a78bfa" }} />
+                    <span>Analyze GitHub Repo</span>
+                  </button>
                 </div>
               </div>
+
 
               {/* RENDER ACTIVE PRIMARY VIEW */}
               {primaryTab === "studio" ? (
@@ -1486,7 +1569,7 @@ export default function StudentCompetencyCenterPage() {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#60a5fa", fontWeight: 600 }}>
                           <GitBranch style={{ width: "13px", height: "13px" }} />
-                          <span>Active Evidence Branch for {competencyDetail?.competency_name || selectedComp?.competency_name || "Competency"}:</span>
+                          <span>Auditable Evidence Profile for {competencyDetail?.competency_name || selectedComp?.competency_name || "Competency"}:</span>
                         </div>
                         <span style={{ fontSize: "11px", color: "#94a3b8" }}>
                           PostgreSQL Cryptographic Ledger
@@ -1495,22 +1578,102 @@ export default function StudentCompetencyCenterPage() {
 
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginTop: "8px" }}>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{competencyDetail?.supporting_skills?.length ?? selectedComp?.supporting_skills_count ?? 1}</b>
-                          <span style={{ color: "#94a3b8" }}>Supporting Skills</span>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{evidenceProfile?.mapped_evidence_count ?? 0}</b>
+                          <span style={{ color: "#94a3b8" }}>Mapped Evidence</span>
                         </div>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{competencyDetail?.prerequisites?.length ?? 1}</b>
-                          <span style={{ color: "#94a3b8" }}>Prerequisites</span>
+                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{evidenceProfile?.verified_evidence_count ?? 0}</b>
+                          <span style={{ color: "#94a3b8" }}>Verified Artifacts</span>
                         </div>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{competencyDetail?.is_verified ? "Verified" : "Pending"}</b>
-                          <span style={{ color: "#94a3b8" }}>Proof Status</span>
+                          <b style={{ display: "block", color: "#34d399", fontSize: "13px" }}>{evidenceProfile?.strongest_evidence ?? "MODERATE"}</b>
+                          <span style={{ color: "#94a3b8" }}>Max Strength</span>
                         </div>
                         <div style={{ background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", textAlign: "center" }}>
-                          <b style={{ display: "block", color: "#ffffff", fontSize: "13px" }}>{((competencyDetail?.confidence_score ?? selectedComp?.confidence_score ?? 0.8) * 100).toFixed(0)}%</b>
-                          <span style={{ color: "#94a3b8" }}>Confidence</span>
+                          <b style={{ display: "block", color: "#60a5fa", fontSize: "13px" }}>{evidenceProfile?.max_mapping_confidence ? `${Math.round(evidenceProfile.max_mapping_confidence * 100)}%` : "N/A"}</b>
+                          <span style={{ color: "#94a3b8" }}>Mapping Conf.</span>
                         </div>
                       </div>
+
+                      {/* Display Real Auditable Evidence Cards */}
+                      {evidenceProfile?.evidence_items && evidenceProfile.evidence_items.length > 0 ? (
+                        <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {evidenceProfile.evidence_items.map((item) => (
+                            <div
+                              key={item.mapping_id}
+                              style={{
+                                background: "rgba(255, 255, 255, 0.03)",
+                                border: "1px solid rgba(255, 255, 255, 0.08)",
+                                borderRadius: "8px",
+                                padding: "8px 12px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "4px"
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span style={{ fontSize: "12px", fontWeight: 600, color: "#f8fafc" }}>
+                                    {item.evidence_title}
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: "10px",
+                                      padding: "1px 6px",
+                                      borderRadius: "4px",
+                                      background: "rgba(59, 130, 246, 0.15)",
+                                      color: "#93c5fd",
+                                      border: "1px solid rgba(59, 130, 246, 0.3)"
+                                    }}
+                                  >
+                                    {item.source_type}
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: "10px",
+                                      padding: "1px 6px",
+                                      borderRadius: "4px",
+                                      background: "rgba(168, 85, 247, 0.15)",
+                                      color: "#d8b4fe",
+                                      border: "1px solid rgba(168, 85, 247, 0.3)"
+                                    }}
+                                  >
+                                    {item.mapping_method}
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span
+                                    style={{
+                                      fontSize: "10.5px",
+                                      fontWeight: 600,
+                                      color: item.mapping_status === "CONFIRMED" ? "#34d399" : item.mapping_status === "REJECTED" ? "#ef4444" : "#fbbf24"
+                                    }}
+                                  >
+                                    {item.mapping_status}
+                                  </span>
+                                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#60a5fa" }}>
+                                    {Math.round(item.confidence * 100)}% conf
+                                  </span>
+                                </div>
+                              </div>
+                              {item.confidence_reason && (
+                                <div style={{ fontSize: "10.5px", color: "#94a3b8" }}>
+                                  {item.confidence_reason}
+                                </div>
+                              )}
+                              {item.source_location && (
+                                <div style={{ fontSize: "10px", color: "#64748b", fontFamily: "var(--font-mono)" }}>
+                                  Source: {item.source_location}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: "10px", fontSize: "11.5px", color: "#64748b", fontStyle: "italic", textAlign: "center" }}>
+                          No direct evidence mapped to this competency yet. Upload an artifact or connect GitHub to discover technical claims.
+                        </div>
+                      )}
                     </div>
 
                   </div>
@@ -1616,6 +1779,52 @@ export default function StudentCompetencyCenterPage() {
                             ))
                           ) : (
                             <span style={{ fontSize: "11.5px", color: "#64748b" }}>Direct demonstrated competency</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Authoritative Mapped Evidence */}
+                      <div style={{ marginTop: "14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#cbd5e1" }}>
+                            Authoritative Evidence Artifacts ({evidenceProfile?.mapped_evidence_count || 0})
+                          </span>
+                          {evidenceProfile?.verified_evidence_count ? (
+                            <span style={{ fontSize: "10px", color: "#34d399", display: "flex", alignItems: "center", gap: "3px" }}>
+                              <ShieldCheck style={{ width: "11px", height: "11px" }} />
+                              {evidenceProfile.verified_evidence_count} Verified
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                          {evidenceProfile?.evidence_items && evidenceProfile.evidence_items.length > 0 ? (
+                            evidenceProfile.evidence_items.slice(0, 3).map((item) => (
+                              <div
+                                key={item.mapping_id}
+                                style={{
+                                  background: "rgba(255, 255, 255, 0.03)",
+                                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                                  borderRadius: "6px",
+                                  padding: "6px 8px",
+                                  fontSize: "11px",
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  <span style={{ fontWeight: 600, color: "#f1f5f9" }}>{item.evidence_title}</span>
+                                  <span style={{ color: "#60a5fa", fontWeight: 700 }}>{Math.round(item.confidence * 100)}%</span>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px", color: "#94a3b8", fontSize: "10px" }}>
+                                  <span>{item.source_type}</span>
+                                  <span>·</span>
+                                  <span>{item.mapping_method}</span>
+                                  <span>·</span>
+                                  <span style={{ color: item.mapping_status === "CONFIRMED" ? "#34d399" : "#fbbf24" }}>{item.mapping_status}</span>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: "11px", color: "#64748b" }}>No verified evidence records yet</span>
                           )}
                         </div>
                       </div>

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, Header, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.database.session import get_db
@@ -144,4 +144,17 @@ async def get_student_competencies_by_id(
         page=page,
         page_size=page_size
     )
+
+from app.domains.evidence.service import evidence_service
+from app.domains.evidence.schemas import EvidenceDetailDTO
+
+@router.get("/me/evidence", response_model=List[EvidenceDetailDTO])
+async def get_my_evidence(
+    x_dev_persona_id: Optional[str] = Header(None, alias="X-Dev-Persona-Id"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns verified and pending evidence items for the active student persona."""
+    persona = x_dev_persona_id or settings.DEFAULT_DEV_PERSONA_ID
+    return await evidence_service.list_student_evidence(db, persona)
+
 
