@@ -268,10 +268,11 @@ export default function StudentDashboardPage() {
           <nav className="nav" aria-label="Student">
             <Link href="/student/dashboard" aria-current="page"><svg><use href="#i-grid"/></svg>Dashboard</Link>
             <Link href="/student/competency"><svg><use href="#i-spark"/></svg>Competency center</Link>
-            <Link href="/student/competency"><svg><use href="#i-clip"/></svg>Assessments</Link>
+            <Link href="/student/assessments"><svg><use href="#i-clip"/></svg>Assessments & Labs</Link>
             <Link href="/student/opportunities"><svg><use href="#i-case"/></svg>Opportunities</Link>
             <Link href="/student/opportunities"><svg><use href="#i-book"/></svg>Internships</Link>
-            <Link href="/student/profile"><svg><use href="#i-id"/></svg>Skill passport</Link>
+            <Link href="/student/passport"><svg><use href="#i-id"/></svg>Skill passport</Link>
+            <Link href="/student/profile"><svg><use href="#i-user"/></svg>Student profile</Link>
 
             <div className="nav-label">
               Institution <svg style={{ width: "14px", height: "14px", transform: "rotate(-90deg)" }}><use href="#i-chev"/></svg>
@@ -458,6 +459,29 @@ export default function StudentDashboardPage() {
                   </div>
 
                   {/* Top Action CTAs */}
+                  <Link
+                    href="/student/passport"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      height: "38px",
+                      padding: "0 14px",
+                      borderRadius: "12px",
+                      background: "rgba(99, 102, 241, 0.15)",
+                      color: "#a5b4fc",
+                      border: "1px solid rgba(99, 102, 241, 0.3)",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <ShieldCheck style={{ width: "15px", height: "15px", color: "#818cf8" }} />
+                    <span>Skill Passport</span>
+                  </Link>
+
                   <button
                     type="button"
                     onClick={() => router.push("/student/profile")}

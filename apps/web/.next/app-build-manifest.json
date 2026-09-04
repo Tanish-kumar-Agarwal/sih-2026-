@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/student/profile/page": [
+    "/(public)/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/student/profile/page.js"
+      "static/chunks/app/(public)/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,35 +11,20 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/student/competency/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/student/competency/page.js"
-    ],
-    "/admin/taxonomy/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/taxonomy/page.js"
-    ],
-    "/student/passport/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/student/passport/page.js"
-    ],
     "/student/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/student/dashboard/page.js"
     ],
-    "/admin/dashboard/page": [
+    "/student/competency/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/dashboard/page.js"
+      "static/chunks/app/student/competency/page.js"
     ],
-    "/(auth)/onboarding/page": [
+    "/institution/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(auth)/onboarding/page.js"
+      "static/chunks/app/institution/dashboard/page.js"
     ],
     "/institution/students/page": [
       "static/chunks/webpack.js",
@@ -51,15 +36,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/institution/students/[id]/page.js"
     ],
-    "/institution/dashboard/page": [
+    "/student/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/institution/dashboard/page.js"
+      "static/chunks/app/student/profile/page.js"
     ],
-    "/student/assessments/page": [
+    "/student/opportunities/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/student/assessments/page.js"
+      "static/chunks/app/student/opportunities/page.js"
+    ],
+    "/student/passport/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/student/passport/page.js"
+    ],
+    "/institution/readiness/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/institution/readiness/page.js"
     ]
   }
 }

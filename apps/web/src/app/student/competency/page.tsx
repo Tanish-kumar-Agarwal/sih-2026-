@@ -630,7 +630,8 @@ export default function StudentCompetencyCenterPage() {
             <Link href="/student/assessments"><svg><use href="#i-clip"/></svg>Assessments & Labs</Link>
             <Link href="/student/opportunities"><svg><use href="#i-case"/></svg>Opportunities</Link>
             <Link href="/student/opportunities"><svg><use href="#i-book"/></svg>Internships</Link>
-            <Link href="/student/profile"><svg><use href="#i-id"/></svg>Skill passport</Link>
+            <Link href="/student/passport"><svg><use href="#i-id"/></svg>Skill passport</Link>
+            <Link href="/student/profile"><svg><use href="#i-user"/></svg>Student profile</Link>
 
             <div className="nav-label">
               Institution <svg style={{ width: "14px", height: "14px", transform: "rotate(-90deg)" }}><use href="#i-chev"/></svg>
@@ -967,6 +968,44 @@ export default function StudentCompetencyCenterPage() {
                     )}
                   </div>
 
+                    {/* Recalculate Target Readiness Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        recalcReadinessMutation.mutate(
+                          { targetId: selectedRole, targetType: "ROLE" },
+                          {
+                            onSuccess: (data) => {
+                              showToast(`Target readiness recalculated: ${data.readiness_score}% (${data.readiness_state})`);
+                              refetchReadiness();
+                            },
+                            onError: (err: any) => {
+                              showToast(`Recalculation error: ${err?.message || "Failed"}`);
+                            }
+                          }
+                        );
+                      }}
+                      disabled={recalcReadinessMutation.isPending}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        height: "38px",
+                        padding: "0 14px",
+                        borderRadius: "12px",
+                        background: "rgba(16, 185, 129, 0.15)",
+                        border: "1px solid rgba(16, 185, 129, 0.35)",
+                        color: "#6ee7b7",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: recalcReadinessMutation.isPending ? "wait" : "pointer",
+                        boxShadow: "0 2px 8px rgba(16, 185, 129, 0.2)",
+                      }}
+                    >
+                      <RefreshCw style={{ width: "14px", height: "14px", animation: recalcReadinessMutation.isPending ? "spin 1s linear infinite" : "none" }} />
+                      <span>{recalcReadinessMutation.isPending ? "Evaluating..." : "Recalculate Readiness"}</span>
+                    </button>
+
                   {/* Derive Competencies from Projects Button */}
                   <button
                     type="button"
@@ -1267,24 +1306,51 @@ export default function StudentCompetencyCenterPage() {
                       Matched against {currentRole.matchedRolesCount} live requisitions at {currentRole.companies}.
                     </div>
 
+                    {/* Explainability Summary */}
+                    <div style={{ marginTop: "8px", fontSize: "11.5px", color: "#cbd5e1", lineHeight: 1.4, background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.06)", borderRadius: "8px", padding: "8px 10px" }}>
+                      💡 {currentRole.delta}
+                    </div>
+
+                    {/* Critical Blockers Alert */}
+                    {currentRole.criticalBlockers && currentRole.criticalBlockers.length > 0 && (
+                      <div style={{ marginTop: "8px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "10px", padding: "8px 10px" }}>
+                        <div style={{ fontSize: "11px", fontWeight: 700, color: "#f87171", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <AlertCircle style={{ width: "13px", height: "13px" }} />
+                          <span>Mandatory Gating Blocker ({currentRole.criticalBlockers.length})</span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#fca5a5", marginTop: "3px" }}>
+                          {currentRole.criticalBlockers[0].reason}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Core Skills Verified (Green) */}
-                    <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
                       <div style={{ fontSize: "11px", fontWeight: 700, color: "#34d399", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                         ✓ Mastered Core Dimensions
                       </div>
                       
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                        {realCompetencies.length > 0 ? (
+                        {currentRole.strengths && currentRole.strengths.length > 0 ? (
+                          currentRole.strengths.slice(0, 3).map((st: any) => (
+                            <div key={st.competency_id} style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
+                              <b style={{ display: "block", fontSize: "13px", color: "#34d399" }}>{st.student_score ? `${Math.round(st.student_score)}%` : "Mastered"}</b>
+                              <span style={{ fontSize: "10.5px", color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                {st.competency_name.split(" ")[0]}
+                              </span>
+                            </div>
+                          ))
+                        ) : realCompetencies.length > 0 ? (
                           realCompetencies.slice(0, 3).map((comp) => (
                             <div key={comp.id} style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "10px", padding: "8px 10px", textAlign: "center" }}>
-                              <b style={{ display: "block", fontSize: "14px", color: "#34d399" }}>{comp.score}%</b>
-                              <span style={{ fontSize: "11px", color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                              <b style={{ display: "block", fontSize: "13px", color: "#34d399" }}>{comp.score}%</b>
+                              <span style={{ fontSize: "10.5px", color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                                 {comp.competency_name.split(" ")[0]}
                               </span>
                             </div>
                           ))
                         ) : (
-                          <div style={{ gridColumn: "1 / -1", fontSize: "12px", color: "#64748b", textAlign: "center", padding: "8px" }}>
+                          <div style={{ gridColumn: "1 / -1", fontSize: "11.5px", color: "#64748b", textAlign: "center", padding: "6px" }}>
                             No competencies recorded yet
                           </div>
                         )}
@@ -1298,11 +1364,24 @@ export default function StudentCompetencyCenterPage() {
                       </div>
                       
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
-                        {activeRoleDetail?.requirements && activeRoleDetail.requirements.length > 0 ? (
+                        {currentRole.gaps && currentRole.gaps.length > 0 ? (
+                          currentRole.gaps.slice(0, 2).map((gap: any) => (
+                            <div key={gap.competency_id} style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: "10px", padding: "8px 10px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <b style={{ fontSize: "11px", color: gap.is_mandatory ? "#f87171" : "#fbbf24" }}>
+                                  {gap.is_mandatory ? "REQUIRED" : "PREFERRED"}: {gap.required_proficiency}
+                                </b>
+                              </div>
+                              <div style={{ fontSize: "11px", color: "#cbd5e1", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {gap.competency_name}
+                              </div>
+                            </div>
+                          ))
+                        ) : activeRoleDetail?.requirements && activeRoleDetail.requirements.length > 0 ? (
                           activeRoleDetail.requirements.slice(0, 2).map((req) => (
                             <div key={req.id} style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: "10px", padding: "8px 10px" }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <b style={{ fontSize: "12px", color: "#fbbf24" }}>Required: {req.required_proficiency}</b>
+                                <b style={{ fontSize: "11px", color: "#fbbf24" }}>Required: {req.required_proficiency}</b>
                               </div>
                               <div style={{ fontSize: "11px", color: "#cbd5e1", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {req.competency_name}
@@ -1310,7 +1389,7 @@ export default function StudentCompetencyCenterPage() {
                             </div>
                           ))
                         ) : (
-                          <div style={{ gridColumn: "1 / -1", fontSize: "12px", color: "#64748b", textAlign: "center", padding: "8px" }}>
+                          <div style={{ gridColumn: "1 / -1", fontSize: "11.5px", color: "#64748b", textAlign: "center", padding: "6px" }}>
                             Standard enterprise requirements
                           </div>
                         )}

@@ -88,6 +88,13 @@ export default function Navbar() {
                     <div className="text-[10px] text-slate-400">Competency Graph & Matcher</div>
                   </div>
                 </Link>
+                <Link href="/student/passport" className="flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg text-slate-200 hover:bg-indigo-600/20 hover:text-indigo-300 transition-colors">
+                  <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                  <div>
+                    <div className="font-semibold">Skill Passport</div>
+                    <div className="text-[10px] text-slate-400">Cryptographic Credential Ledger</div>
+                  </div>
+                </Link>
                 <Link href="/industry/dashboard" className="flex items-center gap-2.5 px-2.5 py-2 text-xs rounded-lg text-slate-200 hover:bg-emerald-600/20 hover:text-emerald-300 transition-colors">
                   <Briefcase className="w-4 h-4 text-emerald-400" />
                   <div>

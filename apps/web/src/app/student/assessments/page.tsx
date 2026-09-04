@@ -205,7 +205,9 @@ export default function StudentAssessmentsPage() {
             <Link href="/student/competency"><svg><use href="#i-spark"/></svg>Competency center</Link>
             <Link href="/student/assessments" aria-current="page"><svg><use href="#i-clip"/></svg>Assessments & Labs</Link>
             <Link href="/student/opportunities"><svg><use href="#i-case"/></svg>Opportunities</Link>
+            <Link href="/student/opportunities"><svg><use href="#i-book"/></svg>Internships</Link>
             <Link href="/student/passport"><svg><use href="#i-id"/></svg>Skill passport</Link>
+            <Link href="/student/profile"><svg><use href="#i-user"/></svg>Student profile</Link>
           </nav>
 
           <nav className="nav rail-bottom" aria-label="Account">

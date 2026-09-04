@@ -172,6 +172,35 @@ class ReadinessDomainService:
         if record:
             return self._map_readiness_record_to_response(record)
 
+        # Check if target exists in canonical catalog before calculation
+        target_res = await readiness_repo.get_target_requirements(target_type, target_id)
+        if not target_res:
+            try:
+                tc_enum = TargetContextType(target_type.upper())
+            except ValueError:
+                tc_enum = TargetContextType.ROLE
+
+            return StudentReadinessStateResponse(
+                student_id=student_id,
+                target_type=tc_enum,
+                target_id=target_id,
+                target_title=target_id,
+                readiness_state=ReadinessState.NOT_ASSESSED,
+                readiness_score=0.0,
+                confidence=0.0,
+                missing_competencies_count=0,
+                satisfied_competencies_count=0,
+                total_required_count=0,
+                summary=f"Readiness has not yet been evaluated for target '{target_id}'.",
+                strengths=[],
+                gaps=[],
+                critical_blockers=[],
+                requirements=[],
+                provenance={"notice": "Target readiness not yet calculated"},
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
+            )
+
         # Evaluate on-demand against canonical target requirements
         return await self.calculate_target_readiness(
             db=db,

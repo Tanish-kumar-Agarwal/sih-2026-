@@ -162,7 +162,8 @@ export default function StudentProfileView({ student }: StudentProfileViewProps)
             <Link href="/student/assessments"><svg><use href="#i-clip"/></svg>Assessments & Labs</Link>
             <Link href="/student/opportunities"><svg><use href="#i-case"/></svg>Opportunities</Link>
             <Link href="/student/opportunities"><svg><use href="#i-book"/></svg>Internships</Link>
-            <Link href="/student/profile"><svg><use href="#i-id"/></svg>Skill passport</Link>
+            <Link href="/student/passport"><svg><use href="#i-id"/></svg>Skill passport</Link>
+            <Link href="/student/profile" aria-current="page"><svg><use href="#i-user"/></svg>Student profile</Link>
 
             <div className="nav-label">
               Institution <svg style={{ width: "14px", height: "14px", transform: "rotate(-90deg)" }}><use href="#i-chev"/></svg>
@@ -356,14 +357,14 @@ export default function StudentProfileView({ student }: StudentProfileViewProps)
 
               {/* Action Buttons Bar */}
               <div className="action-bar">
-                <button
+                <Link
+                  href="/student/passport"
                   className="action-btn-primary"
-                  type="button"
-                  onClick={() => router.push(`/student/passport`)}
+                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
                   <Eye style={{ width: "15px", height: "15px" }} />
                   <span>View skill passport</span>
-                </button>
+                </Link>
 
                 <button
                   className="action-btn-secondary"
