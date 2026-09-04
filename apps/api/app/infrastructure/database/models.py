@@ -346,11 +346,24 @@ class StudentCompetency(Base):
     id = Column(String(36), primary_key=True, default=gen_uuid)
     student_id = Column(String(36), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     competency_id = Column(String(36), ForeignKey("competencies.id", ondelete="CASCADE"), nullable=False, index=True)
-    proficiency_level = Column(String(30), default="Intermediate")
+    proficiency_level = Column(String(30), default="FOUNDATIONAL")
     score = Column(Float, default=0.0)
-    confidence_score = Column(Float, default=0.5)
+    confidence_score = Column(Float, default=0.0)
     is_verified = Column(Boolean, default=False)
     verified_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Phase 4 Step 1: Readiness Domain Foundation & Signals
+    state = Column(String(30), default="NOT_ASSESSED", nullable=False)
+    evidence_count = Column(Integer, default=0, nullable=False)
+    verified_evidence_count = Column(Integer, default=0, nullable=False)
+    evidence_strength = Column(String(30), nullable=True)
+    assessment_score = Column(Float, nullable=True)
+    experience_score = Column(Float, nullable=True)
+    algorithm_version = Column(String(50), default="v1.0.0", nullable=False)
+    taxonomy_version = Column(String(50), default="v1.0.0", nullable=False)
+    provenance = Column(JSON, default=dict, nullable=False)
+    last_evaluated_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), default=utc_now)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
@@ -359,7 +372,78 @@ class StudentCompetency(Base):
 
     __table_args__ = (
         UniqueConstraint('student_id', 'competency_id', name='uq_student_competency'),
+        CheckConstraint('score >= 0.0 AND score <= 100.0', name='ck_student_competency_score_range'),
+        CheckConstraint('confidence_score >= 0.0 AND confidence_score <= 1.0', name='ck_student_competency_confidence_range'),
+        CheckConstraint('assessment_score IS NULL OR (assessment_score >= 0.0 AND assessment_score <= 100.0)', name='ck_student_competency_assessment_score_range'),
+        CheckConstraint('experience_score IS NULL OR (experience_score >= 0.0 AND experience_score <= 100.0)', name='ck_student_competency_experience_score_range'),
     )
+
+
+class StudentCompetencyStateHistory(Base):
+    """
+    Immutable historical audit tracking for StudentCompetency state changes over time.
+    Provides complete provenance and auditability for re-evaluations.
+    """
+    __tablename__ = "student_competency_state_history"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    student_id = Column(String(36), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    competency_id = Column(String(36), ForeignKey("competencies.id", ondelete="CASCADE"), nullable=False, index=True)
+    proficiency_level = Column(String(30), nullable=False)
+    score = Column(Float, nullable=False)
+    confidence_score = Column(Float, nullable=False)
+    state = Column(String(30), nullable=False)
+    evidence_count = Column(Integer, default=0, nullable=False)
+    verified_evidence_count = Column(Integer, default=0, nullable=False)
+    evidence_strength = Column(String(30), nullable=True)
+    assessment_score = Column(Float, nullable=True)
+    experience_score = Column(Float, nullable=True)
+    algorithm_version = Column(String(50), nullable=False)
+    taxonomy_version = Column(String(50), nullable=False)
+    provenance = Column(JSON, default=dict, nullable=False)
+    recorded_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    student = relationship("Student")
+    competency = relationship("Competency")
+
+    __table_args__ = (
+        Index('ix_student_comp_history_lookup', 'student_id', 'competency_id', 'recorded_at'),
+    )
+
+
+class StudentRoleReadiness(Base):
+    """
+    Canonical foundation model representing a student's readiness against a target context
+    (Role, Opportunity, Blueprint).
+    NOTE: Competency State != Readiness State.
+    """
+    __tablename__ = "student_role_readiness"
+
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    student_id = Column(String(36), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_type = Column(String(50), default="ROLE", nullable=False)  # ROLE, OPPORTUNITY, BLUEPRINT
+    target_id = Column(String(36), nullable=False, index=True)
+    readiness_state = Column(String(30), default="NOT_ASSESSED", nullable=False)
+    readiness_score = Column(Float, default=0.0, nullable=False)
+    confidence = Column(Float, default=0.0, nullable=False)
+    missing_competencies_count = Column(Integer, default=0, nullable=False)
+    satisfied_competencies_count = Column(Integer, default=0, nullable=False)
+    total_required_count = Column(Integer, default=0, nullable=False)
+    algorithm_version = Column(String(50), default="v1.0.0", nullable=False)
+    provenance = Column(JSON, default=dict, nullable=False)
+    calculated_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+    student = relationship("Student")
+
+    __table_args__ = (
+        UniqueConstraint('student_id', 'target_type', 'target_id', name='uq_student_target_readiness'),
+        CheckConstraint('readiness_score >= 0.0 AND readiness_score <= 100.0', name='ck_student_readiness_score_range'),
+        CheckConstraint('confidence >= 0.0 AND confidence <= 1.0', name='ck_student_readiness_confidence_range'),
+        Index('ix_student_target_readiness_lookup', 'student_id', 'target_type', 'target_id'),
+    )
+
 
 class CompetencyAssessment(Base):
     __tablename__ = "competency_assessments"

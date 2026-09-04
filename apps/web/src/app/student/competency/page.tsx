@@ -49,6 +49,10 @@ import {
   useTriggerEvidenceMapping,
   useVerifyEvidenceMapping,
 } from "@/hooks/useCompetencyEvidence";
+import {
+  useStudentTargetReadiness,
+  useRecalculateTargetReadiness,
+} from "@/hooks/useReadiness";
 
 
 interface SkillNode {
@@ -161,10 +165,12 @@ export default function StudentCompetencyCenterPage() {
   const { data: activeRoleDetail } = useRoleRequirements(selectedRole);
   const { data: evidenceProfile, isLoading: isEvidenceLoading } = useCompetencyEvidence(selectedCompetencyId || undefined);
   const verifyMappingMutation = useVerifyEvidenceMapping();
+  const { data: targetReadiness, isLoading: isLoadingReadiness, refetch: refetchReadiness } = useStudentTargetReadiness(selectedRole, "ROLE");
+  const recalcReadinessMutation = useRecalculateTargetReadiness();
 
   useEffect(() => {
     if (currentPersona?.department?.toLowerCase().includes("ayur") || currentPersona?.department?.toLowerCase().includes("ayush")) {
-      setSelectedRole("role-ayush-specialist");
+      setSelectedRole("role-ayurveda-specialist");
     } else {
       setSelectedRole("role-backend-dev");
     }
@@ -181,13 +187,18 @@ export default function StudentCompetencyCenterPage() {
   // Derived role title from catalog
   const selectedRoleItem = rolesCatalog?.items?.find(r => r.id === selectedRole || r.slug === selectedRole || r.title === selectedRole);
   const currentRoleTitle = selectedRoleItem?.title || selectedRole;
-  const currentRole = roleBlueprints[selectedRole] || {
-    score: competenciesData?.items && competenciesData.items.length > 0 ? Math.round(competenciesData.items.reduce((a, b) => a + b.score, 0) / competenciesData.items.length) : 0,
+  const currentRole = {
+    score: targetReadiness ? Math.round(targetReadiness.readiness_score) : (roleBlueprints[selectedRole]?.score || 0),
     hiringThreshold: 80,
-    delta: "Evaluated against canonical role rubric",
-    status: competenciesData?.items && competenciesData.items.length > 0 ? "In Progress" : "Blank Slate",
+    delta: targetReadiness?.summary || roleBlueprints[selectedRole]?.delta || "Evaluated against canonical role rubric",
+    status: targetReadiness ? targetReadiness.readiness_state.replace('_', ' ') : (roleBlueprints[selectedRole]?.status || "Blank Slate"),
     matchedRolesCount: rolesCatalog?.total || 5,
-    companies: "Razorpay, Zomato, CRED, CCRAS"
+    companies: roleBlueprints[selectedRole]?.companies || "Razorpay, Zomato, CRED, CCRAS",
+    confidence: targetReadiness?.confidence ?? 0,
+    criticalBlockers: targetReadiness?.critical_blockers || [],
+    strengths: targetReadiness?.strengths || [],
+    gaps: targetReadiness?.gaps || [],
+    isAssessed: targetReadiness ? targetReadiness.readiness_state !== "NOT_ASSESSED" : false
   };
 
   const availableRoles = (rolesCatalog?.items && rolesCatalog.items.length > 0)

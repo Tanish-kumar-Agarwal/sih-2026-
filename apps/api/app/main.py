@@ -24,6 +24,7 @@ from app.api.v1.recommendations import router as recommendations_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.github import router as github_router
 from app.api.v1.evidence_mapping import router as evidence_mapping_router
+from app.api.v1.readiness import router as readiness_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -111,7 +112,8 @@ api_v1_routers = [
     recommendations_router,
     analytics_router,
     github_router,
-    evidence_mapping_router
+    evidence_mapping_router,
+    readiness_router
 ]
 
 for r in api_v1_routers:
